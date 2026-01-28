@@ -273,7 +273,7 @@ def get_sheet_data():
                 df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
         
         # Ensure required columns exist
-        required_columns = ["Timestamp", "Agent Name", "Transfer to:", "Customer Name:", "Electric Bill:", "Credit Score:"]
+        required_columns = ["Timestamp", "Agent Name", "Transfer to:", "Customer Name:", "Electric Bill:", "Credit Score:","Status","FeedBack","H comments"]
         for col in required_columns:
             if col not in df.columns:
                 df[col] = None
@@ -977,4 +977,5 @@ def main():
     st.rerun()
 
 if __name__ == "__main__":
+
     main()
