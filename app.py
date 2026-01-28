@@ -259,7 +259,21 @@ def get_sheet_data():
             st.warning("No data found in the Google Sheet")
             return pd.DataFrame()
         
-        df = pd.DataFrame(values[1:], columns=values[0])
+        # Get headers from first row
+        headers = values[0]
+        
+        # Process data rows, ensuring all rows have the same number of columns
+        processed_rows = []
+        for i, row in enumerate(values[1:], 1):
+            # Fill missing columns with None
+            while len(row) < len(headers):
+                row.append(None)
+            # If row has more columns than headers, truncate
+            if len(row) > len(headers):
+                row = row[:len(headers)]
+            processed_rows.append(row)
+        
+        df = pd.DataFrame(processed_rows, columns=headers)
         
         # Clean and parse data
         if "Timestamp" in df.columns:
@@ -272,8 +286,10 @@ def get_sheet_data():
             else:
                 df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
         
-        # Ensure required columns exist
-        required_columns = ["Timestamp", "Agent Name", "Transfer to:", "Customer Name:", "Electric Bill:", "Credit Score:","Status","FeedBack","H comments"]
+        # Create missing columns if they don't exist
+        required_columns = ["Timestamp", "Agent Name", "Transfer to:", "Customer Name:", 
+                          "Electric Bill:", "Credit Score:", "Status", "FeedBack", "H comments"]
+        
         for col in required_columns:
             if col not in df.columns:
                 df[col] = None
@@ -282,6 +298,8 @@ def get_sheet_data():
     
     except Exception as e:
         st.error(f"Error fetching data: {str(e)}")
+        import traceback
+        st.error(f"Full traceback: {traceback.format_exc()}")
         return pd.DataFrame()
 
 # Date helper functions
@@ -918,7 +936,8 @@ def main():
     display_header()
     
     # Get data
-    df = get_sheet_data()
+    with st.spinner("Loading data from Google Sheets..."):
+        df = get_sheet_data()
     
     if df.empty or len(df) == 0:
         st.markdown(f"""
@@ -939,6 +958,12 @@ def main():
         time.sleep(45)
         st.rerun()
     
+    # Only proceed if we have actual data (not just headers)
+    if len(df) <= 1:
+        st.warning("Data loaded but contains only headers or no valid records.")
+        time.sleep(45)
+        st.rerun()
+    
     # Calculate KPIs
     kpis = calculate_kpis(df)
     
@@ -946,6 +971,9 @@ def main():
         st.markdown(f'<p style="color: {COLORS["black"]}; opacity: 0.7;">Data loaded but no valid records found. Waiting for new data...</p>', unsafe_allow_html=True)
         time.sleep(45)
         st.rerun()
+    
+    # Display success message
+    st.success(f"✓ Loaded {len(df)} records from Google Sheets")
     
     # Display KPIs
     display_kpi_grid(kpis)
@@ -977,5 +1005,4 @@ def main():
     st.rerun()
 
 if __name__ == "__main__":
-
     main()
