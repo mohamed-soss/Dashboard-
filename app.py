@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
@@ -14,51 +15,103 @@ st.set_page_config(
 )
 
 # ============================================================
-# NEURAL NETWORK CANVAS + FULL CSS
+# NEURAL NETWORK BACKGROUND - using components.html() so JS runs
+# ============================================================
+neural_html = """
+<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;overflow:hidden;background:#0A0E27;">
+<canvas id="c"></canvas>
+</div>
+<style>
+body{margin:0;overflow:hidden;background:#0A0E27;}
+</style>
+<script>
+(function(){
+    var c=document.getElementById('c');
+    var ctx=c.getContext('2d');
+    var W,H;
+    function resize(){
+        W=c.width=window.innerWidth;
+        H=c.height=window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize',resize);
+    var N=90;
+    var MAX=160;
+    var pts=[];
+    for(var i=0;i<N;i++){
+        pts.push({
+            x:Math.random()*W,
+            y:Math.random()*H,
+            vx:(Math.random()-0.5)*0.5,
+            vy:(Math.random()-0.5)*0.5,
+            r:Math.random()*1.8+0.8
+        });
+    }
+    function frame(){
+        ctx.clearRect(0,0,W,H);
+        var i,j,dx,dy,dist,a;
+        for(i=0;i<N;i++){
+            for(j=i+1;j<N;j++){
+                dx=pts[i].x-pts[j].x;
+                dy=pts[i].y-pts[j].y;
+                dist=Math.sqrt(dx*dx+dy*dy);
+                if(dist<MAX){
+                    a=(1-dist/MAX)*0.3;
+                    ctx.beginPath();
+                    ctx.strokeStyle='rgba(129,140,248,'+a+')';
+                    ctx.lineWidth=0.7;
+                    ctx.moveTo(pts[i].x,pts[i].y);
+                    ctx.lineTo(pts[j].x,pts[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+        for(i=0;i<N;i++){
+            var p=pts[i];
+            ctx.beginPath();
+            var g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*5);
+            g.addColorStop(0,'rgba(129,140,248,0.25)');
+            g.addColorStop(1,'rgba(129,140,248,0)');
+            ctx.fillStyle=g;
+            ctx.arc(p.x,p.y,p.r*5,0,6.28);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.fillStyle='rgba(165,180,252,0.8)';
+            ctx.arc(p.x,p.y,p.r,0,6.28);
+            ctx.fill();
+            p.x+=p.vx;
+            p.y+=p.vy;
+            if(p.x<0||p.x>W)p.vx*=-1;
+            if(p.y<0||p.y>H)p.vy*=-1;
+        }
+        requestAnimationFrame(frame);
+    }
+    frame();
+})();
+</script>
+"""
+components.html(neural_html, height=0, scrolling=False)
+
+# ============================================================
+# FULL CSS - dark glassmorphism over neural background
 # ============================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-:root {
-    --primary: #4F46E5;
-    --primary-light: #818CF8;
-    --primary-dark: #312E81;
-    --accent: #06B6D4;
-    --accent2: #8B5CF6;
-    --bg: #0A0E27;
-    --surface: rgba(255,255,255,0.04);
-    --surface2: rgba(255,255,255,0.06);
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.12);
-    --text: #E2E8F0;
-    --text-muted: #94A3B8;
-    --text-bright: #F8FAFC;
-    --success: #10B981;
-    --warning: #F59E0B;
-    --danger: #EF4444;
-    --glow: rgba(79,70,229,0.4);
-}
+* { font-family: 'Inter', sans-serif; }
 
-* { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-
+/* Make the Streamlit app background transparent so neural net shows through */
 .stApp {
-    background: var(--bg) !important;
+    background: transparent !important;
 }
-
-/* Neural canvas behind everything */
-#neural-canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    z-index: 0;
-    pointer-events: none;
+.stApp > div:first-child {
+    background: transparent !important;
 }
-
-/* Make sure Streamlit content is above canvas */
-.stApp > div, .stApp > header, .main, .block-container {
+.main .block-container {
+    background: transparent !important;
     position: relative;
-    z-index: 1;
+    z-index: 10;
 }
 
 /* ==================== ANIMATIONS ==================== */
@@ -67,11 +120,11 @@ st.markdown("""
     to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeDown {
-    from { opacity: 0; transform: translateY(-20px); }
+    from { opacity: 0; transform: translateY(-25px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.9); }
+    from { opacity: 0; transform: scale(0.88); }
     to   { opacity: 1; transform: scale(1); }
 }
 @keyframes slideLeft {
@@ -82,17 +135,17 @@ st.markdown("""
     from { opacity: 0; transform: translateX(40px); }
     to   { opacity: 1; transform: translateX(0); }
 }
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(79,70,229,0.15); }
-    50% { box-shadow: 0 0 40px rgba(79,70,229,0.35); }
+@keyframes countPop {
+    0%   { opacity: 0; transform: scale(0.5); filter: blur(8px); }
+    60%  { transform: scale(1.08); filter: blur(0); }
+    100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+@keyframes barGrow {
+    from { width: 0%; }
 }
 @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.85); }
-}
-@keyframes borderGlow {
-    0%, 100% { border-color: rgba(79,70,229,0.2); }
-    50% { border-color: rgba(79,70,229,0.5); }
+    50% { opacity: 0.4; transform: scale(0.8); }
 }
 @keyframes gradientShift {
     0%   { background-position: 0% 50%; }
@@ -100,30 +153,27 @@ st.markdown("""
     100% { background-position: 0% 50%; }
 }
 @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
 }
-@keyframes countPop {
-    0%   { opacity: 0; transform: scale(0.6); filter: blur(6px); }
-    60%  { transform: scale(1.08); filter: blur(0); }
-    100% { opacity: 1; transform: scale(1); filter: blur(0); }
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(79,70,229,0.15); }
+    50% { box-shadow: 0 0 40px rgba(79,70,229,0.3); }
 }
-@keyframes barGrow {
-    from { width: 0%; }
+@keyframes borderShimmer {
+    0%   { border-color: rgba(79,70,229,0.15); }
+    50%  { border-color: rgba(79,70,229,0.4); }
+    100% { border-color: rgba(79,70,229,0.15); }
 }
 @keyframes ripple {
-    to { transform: scale(2.5); opacity: 0; }
-}
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    to { transform: scale(3); opacity: 0; }
 }
 
 /* ==================== HEADER ==================== */
 .main-header {
-    background: linear-gradient(135deg, #1E1B4B 0%, #312E81 30%, #4338CA 60%, #0891B2 100%);
+    background: linear-gradient(135deg, #1E1B4B 0%, #312E81 25%, #4338CA 50%, #6366F1 75%, #0891B2 100%);
     background-size: 300% 300%;
-    animation: gradientShift 12s ease infinite, fadeDown 0.8s cubic-bezier(0.16,1,0.3,1) forwards;
+    animation: gradientShift 10s ease infinite, fadeDown 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
     border-radius: 20px;
     padding: 32px 40px;
     margin-bottom: 28px;
@@ -131,38 +181,41 @@ st.markdown("""
     position: relative;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 80px rgba(79,70,229,0.15);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 100px rgba(79,70,229,0.15);
 }
 .main-header::before {
     content: '';
     position: absolute;
-    top: -50%; right: -10%;
+    top: -60%; right: -8%;
     width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(129,140,248,0.15), transparent 60%);
+    background: radial-gradient(circle, rgba(129,140,248,0.12), transparent 60%);
     border-radius: 50%;
     animation: float 6s ease infinite;
 }
 .main-header::after {
     content: '';
     position: absolute;
-    bottom: -40%; left: 20%;
+    bottom: -50%; left: 15%;
     width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(6,182,212,0.1), transparent 60%);
+    background: radial-gradient(circle, rgba(6,182,212,0.08), transparent 60%);
     border-radius: 50%;
     animation: float 8s ease infinite reverse;
 }
 .main-header h1 {
     color: white !important;
-    font-size: 30px; font-weight: 900;
-    margin: 0; letter-spacing: -1px;
+    font-size: 30px !important;
+    font-weight: 900 !important;
+    margin: 0 !important;
+    letter-spacing: -1px;
     position: relative; z-index: 2;
 }
 .main-header p {
     color: rgba(255,255,255,0.7) !important;
-    font-size: 14px; margin: 6px 0 0 0;
+    font-size: 14px !important;
+    margin: 6px 0 0 0 !important;
     position: relative; z-index: 2;
 }
-.header-badges {
+.h-badges {
     display: flex; gap: 10px; margin-top: 14px;
     position: relative; z-index: 2; flex-wrap: wrap;
 }
@@ -178,7 +231,7 @@ st.markdown("""
 }
 .h-badge:hover {
     background: rgba(255,255,255,0.15);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 .live-dot {
     width: 8px; height: 8px;
@@ -188,195 +241,169 @@ st.markdown("""
     box-shadow: 0 0 10px rgba(52,211,153,0.6);
 }
 
-/* ==================== METRIC CARDS ==================== */
+/* ==================== KPI METRICS ==================== */
 div[data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 22px 24px;
-    transition: all 0.5s cubic-bezier(0.16,1,0.3,1);
-    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
-    position: relative;
-    overflow: hidden;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
+    backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 16px !important;
+    padding: 22px 24px !important;
+    transition: all 0.5s cubic-bezier(0.16,1,0.3,1) !important;
+    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
-div[data-testid="stMetric"]:nth-child(1) { animation-delay: 0.1s; }
-div[data-testid="stMetric"]:nth-child(2) { animation-delay: 0.2s; }
-div[data-testid="stMetric"]:nth-child(3) { animation-delay: 0.3s; }
-div[data-testid="stMetric"]:nth-child(4) { animation-delay: 0.4s; }
+div[data-testid="stMetric"]:nth-child(1) { animation-delay: 0.1s !important; }
+div[data-testid="stMetric"]:nth-child(2) { animation-delay: 0.2s !important; }
+div[data-testid="stMetric"]:nth-child(3) { animation-delay: 0.3s !important; }
+div[data-testid="stMetric"]:nth-child(4) { animation-delay: 0.4s !important; }
 
 div[data-testid="stMetric"]::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--primary), var(--accent), var(--accent2));
+    background: linear-gradient(90deg, #4F46E5, #06B6D4, #8B5CF6);
     transform: scaleX(0);
     transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
     transform-origin: left;
 }
-div[data-testid="stMetric"]:hover::before { transform: scaleX(1); }
+div[data-testid="stMetric"]:hover::before { transform: scaleX(1) !important; }
 
 div[data-testid="stMetric"]:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 20px 50px rgba(79,70,229,0.2), 0 0 30px rgba(79,70,229,0.1);
-    border-color: rgba(129,140,248,0.3);
-    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    transform: translateY(-6px) !important;
+    box-shadow: 0 20px 50px rgba(79,70,229,0.2), 0 0 40px rgba(79,70,229,0.08) !important;
+    border-color: rgba(129,140,248,0.35) !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04)) !important;
 }
 
 div[data-testid="stMetric"] label {
-    color: var(--text-muted) !important;
+    color: #94A3B8 !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 1px !important;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-    color: var(--text-bright) !important;
+    color: #F8FAFC !important;
     font-size: 36px !important;
     font-weight: 900 !important;
     letter-spacing: -1.5px !important;
-    animation: countPop 0.7s cubic-bezier(0.16,1,0.3,1) 0.5s both;
+    animation: countPop 0.7s cubic-bezier(0.16,1,0.3,1) 0.5s both !important;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
-    color: var(--text-muted) !important;
+    color: #94A3B8 !important;
     font-size: 12px !important;
-    font-weight: 500 !important;
 }
 
 /* ==================== SECTION HEADERS ==================== */
-.section-title {
-    color: var(--text-bright);
+.sec-title {
+    color: #F8FAFC;
     font-size: 20px; font-weight: 800;
     margin: 36px 0 18px 0;
     padding-bottom: 12px;
     border-bottom: 2px solid;
-    border-image: linear-gradient(90deg, var(--primary), var(--accent), transparent) 1;
-    animation: slideLeft 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+    border-image: linear-gradient(90deg, #4F46E5, #06B6D4, transparent) 1;
+    animation: slideLeft 0.6s cubic-bezier(0.16,1,0.3,1) both;
     letter-spacing: -0.5px;
     display: flex; align-items: center; gap: 10px;
 }
-.section-dot {
+.sec-dot {
     width: 10px; height: 10px;
-    background: var(--primary);
+    background: #4F46E5;
     border-radius: 50%;
-    box-shadow: 0 0 12px var(--glow);
+    box-shadow: 0 0 14px rgba(79,70,229,0.5);
     animation: pulse 3s ease infinite;
 }
 
 /* ==================== GLASS CARDS ==================== */
-.glass-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 28px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
-    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
-    transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
-    position: relative;
-    overflow: hidden;
+.g-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
+    backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 18px !important;
+    padding: 28px !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3) !important;
+    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both !important;
+    transition: all 0.4s cubic-bezier(0.16,1,0.3,1) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
-.glass-card::before {
+.g-card::after {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    inset: 0;
     background: linear-gradient(135deg, rgba(79,70,229,0.03), transparent, rgba(6,182,212,0.02));
     pointer-events: none;
+    border-radius: 18px;
 }
-.glass-card:hover {
-    border-color: rgba(129,140,248,0.2);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 40px rgba(79,70,229,0.08);
-    transform: translateY(-2px);
+.g-card:hover {
+    border-color: rgba(129,140,248,0.2) !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 50px rgba(79,70,229,0.08) !important;
+    transform: translateY(-2px) !important;
 }
-.glass-card h3, .glass-card strong {
-    color: var(--text-bright) !important;
-}
-.glass-card p, .glass-card span {
-    color: var(--text-muted) !important;
-}
-
-/* Card icon */
 .card-ico {
     width: 44px; height: 44px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background: linear-gradient(135deg, #4F46E5, #06B6D4);
     border-radius: 12px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 20px;
     box-shadow: 0 8px 20px rgba(79,70,229,0.3);
-    margin-bottom: 14px;
     transition: all 0.3s ease;
 }
-.glass-card:hover .card-ico {
+.g-card:hover .card-ico {
     transform: rotate(-5deg) scale(1.1);
     box-shadow: 0 12px 28px rgba(79,70,229,0.4);
 }
 
-/* ==================== STATUS GRID ==================== */
-.status-grid {
+/* ==================== STATUS CARDS ==================== */
+.s-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-top: 16px;
+    gap: 16px; margin-top: 16px;
 }
 .s-card {
     border-radius: 14px;
-    padding: 22px;
+    padding: 24px;
     text-align: center;
     transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
 }
-.s-card:hover {
-    transform: translateY(-4px) scale(1.02);
-}
-.s-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 60%);
-    opacity: 0;
-    transition: opacity 0.4s;
-}
-.s-card:hover::after { opacity: 1; }
-
+.s-card:hover { transform: translateY(-4px) scale(1.02); }
 .s-done {
-    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05));
+    background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04));
     border: 1px solid rgba(16,185,129,0.2);
 }
-.s-pending {
-    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
+.s-pend {
+    background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.04));
     border: 1px solid rgba(245,158,11,0.2);
 }
 .s-rate {
-    background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(79,70,229,0.05));
+    background: linear-gradient(135deg, rgba(79,70,229,0.12), rgba(79,70,229,0.04));
     border: 1px solid rgba(79,70,229,0.2);
 }
 .s-ico { font-size: 30px; margin-bottom: 8px; }
 .s-val {
-    font-size: 34px; font-weight: 900;
+    font-size: 36px; font-weight: 900;
     letter-spacing: -1px;
     animation: countPop 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both;
 }
 .s-done .s-val { color: #34D399; }
-.s-pending .s-val { color: #FBBF24; }
+.s-pend .s-val { color: #FBBF24; }
 .s-rate .s-val { color: #818CF8; }
-.s-lbl {
-    font-size: 12px; font-weight: 600;
-    margin-top: 4px;
-}
+.s-lbl { font-size: 12px; font-weight: 600; margin-top: 4px; }
 .s-done .s-lbl { color: #6EE7B7; }
-.s-pending .s-lbl { color: #FCD34D; }
+.s-pend .s-lbl { color: #FCD34D; }
 .s-rate .s-lbl { color: #C7D2FE; }
 
 /* ==================== TOP PERFORMER ==================== */
 .top-hero {
-    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
+    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.03));
     border: 1px solid rgba(245,158,11,0.15);
     border-radius: 14px;
     padding: 22px;
     margin: 14px 0;
-    animation: scaleIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+    animation: scaleIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
     transition: all 0.3s ease;
 }
 .top-hero:hover {
@@ -387,20 +414,18 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 /* ==================== RANKING ==================== */
 .rank-row {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px;
-    margin: 7px 0;
+    padding: 12px 16px; margin: 7px 0;
     border-radius: 12px;
     background: rgba(255,255,255,0.02);
     border: 1px solid transparent;
     transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
-    animation: slideRight 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
-    cursor: default;
+    animation: slideRight 0.5s cubic-bezier(0.16,1,0.3,1) both;
 }
 .rank-row:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(129,140,248,0.2);
-    transform: translateX(6px);
-    box-shadow: 0 8px 24px rgba(79,70,229,0.1);
+    background: rgba(255,255,255,0.06) !important;
+    border-color: rgba(129,140,248,0.2) !important;
+    transform: translateX(6px) !important;
+    box-shadow: 0 8px 24px rgba(79,70,229,0.1) !important;
 }
 .rank-low {
     background: rgba(239,68,68,0.04) !important;
@@ -410,36 +435,35 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     border-color: rgba(239,68,68,0.25) !important;
     box-shadow: 0 8px 24px rgba(239,68,68,0.08) !important;
 }
-.bar-track {
+.bar-trk {
     background: rgba(255,255,255,0.06);
     border-radius: 4px; height: 5px;
     margin-top: 6px; overflow: hidden;
 }
-.bar-fill {
+.bar-fl {
     height: 100%; border-radius: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) forwards;
+    background: linear-gradient(90deg, #4F46E5, #06B6D4);
+    animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) both;
 }
 
-/* ==================== HIGHLIGHT BOX ==================== */
-.highlight-box {
-    margin-top: 18px;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, rgba(79,70,229,0.08), rgba(6,182,212,0.06));
-    border: 1px solid rgba(79,70,229,0.15);
+/* ==================== HIGHLIGHT ==================== */
+.hl-box {
+    margin-top: 18px; padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(6,182,212,0.06));
+    border: 1px solid rgba(79,70,229,0.18);
     border-radius: 14px;
     display: flex; align-items: center; gap: 16px;
     animation: scaleIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.3s both;
     transition: all 0.4s ease;
 }
-.highlight-box:hover {
+.hl-box:hover {
     transform: translateY(-3px);
     box-shadow: 0 12px 32px rgba(79,70,229,0.12);
-    border-color: rgba(129,140,248,0.3);
+    border-color: rgba(129,140,248,0.35);
 }
 .hl-ico {
     width: 50px; height: 50px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background: linear-gradient(135deg, #4F46E5, #06B6D4);
     border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
     font-size: 22px;
@@ -447,111 +471,103 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     flex-shrink: 0;
 }
 
-/* ==================== INSIGHT BOX ==================== */
-.insight-box {
-    margin-top: 14px;
-    padding: 14px 18px;
+/* ==================== INSIGHT ==================== */
+.ins-box {
+    margin-top: 14px; padding: 14px 18px;
     border-radius: 12px;
     display: flex; align-items: center; gap: 12px;
     animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.5s both;
     transition: all 0.3s ease;
 }
-.insight-box:hover { transform: translateY(-2px); }
-.insight-danger {
+.ins-box:hover { transform: translateY(-2px); }
+.ins-danger {
     background: rgba(239,68,68,0.06);
     border: 1px solid rgba(239,68,68,0.12);
-}
-.insight-success {
-    background: rgba(16,185,129,0.06);
-    border: 1px solid rgba(16,185,129,0.12);
 }
 
 /* ==================== TABS ==================== */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 4px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 12px;
-    padding: 4px;
-    border: 1px solid var(--border);
+    gap: 4px !important;
+    background: rgba(255,255,255,0.04) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
 }
 .stTabs [data-baseweb="tab"] {
-    background: transparent;
-    border-radius: 10px;
-    padding: 8px 20px;
+    background: transparent !important;
+    border-radius: 10px !important;
+    padding: 8px 20px !important;
     border: none !important;
-    color: var(--text-muted) !important;
-    font-weight: 600;
-    font-size: 13px;
-    transition: all 0.3s ease;
+    color: #94A3B8 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    transition: all 0.3s ease !important;
 }
 .stTabs [aria-selected="true"] {
     background: rgba(79,70,229,0.2) !important;
     color: #A5B4FC !important;
-    font-weight: 700;
-    box-shadow: 0 0 20px rgba(79,70,229,0.15);
+    font-weight: 700 !important;
+    box-shadow: 0 0 20px rgba(79,70,229,0.15) !important;
 }
 .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
-    color: var(--text) !important;
-    background: rgba(255,255,255,0.04);
+    color: #E2E8F0 !important;
+    background: rgba(255,255,255,0.04) !important;
 }
 
 /* ==================== DATAFRAME ==================== */
 .stDataFrame {
     border-radius: 14px !important;
     overflow: hidden !important;
-    border: 1px solid var(--border) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
 }
-.stDataFrame table { color: var(--text) !important; }
+.stDataFrame table { color: #E2E8F0 !important; }
 .stDataFrame th {
-    background: rgba(79,70,229,0.1) !important;
+    background: rgba(79,70,229,0.12) !important;
     color: #A5B4FC !important;
     font-weight: 700 !important;
 }
-.stDataFrame td { color: var(--text) !important; }
+.stDataFrame td { color: #E2E8F0 !important; }
 
 /* ==================== SELECTBOX ==================== */
-.stSelectbox label { color: var(--text-muted) !important; }
+.stSelectbox label { color: #94A3B8 !important; }
 .stSelectbox > div > div {
     border-radius: 10px !important;
-    border-color: var(--border2) !important;
+    border-color: rgba(255,255,255,0.1) !important;
     background: rgba(255,255,255,0.04) !important;
-    color: var(--text) !important;
+    color: #E2E8F0 !important;
 }
 
-/* ==================== SUCCESS BANNER ==================== */
-.success-banner {
-    background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
+/* ==================== BANNERS ==================== */
+.ok-banner {
+    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.03));
     border: 1px solid rgba(16,185,129,0.15);
     border-radius: 14px;
     padding: 14px 22px;
     margin-bottom: 14px;
     display: flex; align-items: center; gap: 12px;
-    animation: fadeDown 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+    animation: fadeDown 0.5s cubic-bezier(0.16,1,0.3,1) both;
     color: #6EE7B7;
     font-size: 14px; font-weight: 500;
 }
-
-/* ==================== WARNING ==================== */
 .warn-card {
-    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
+    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.03));
     border: 1px solid rgba(245,158,11,0.15);
-    border-left: 4px solid var(--warning);
+    border-left: 4px solid #F59E0B;
     border-radius: 16px;
     padding: 28px;
-    animation: fadeUp 0.5s ease forwards;
-    color: var(--text);
+    animation: fadeUp 0.5s ease both;
+    color: #E2E8F0;
 }
 
 /* ==================== FOOTER ==================== */
-.footer-bar {
-    margin-top: 36px;
-    padding: 16px;
+.foot-bar {
+    margin-top: 36px; padding: 16px;
     background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
     backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     text-align: center;
-    color: var(--text-muted);
+    color: #94A3B8;
     font-size: 13px;
     animation: fadeUp 0.5s ease 0.8s both;
 }
@@ -576,92 +592,24 @@ section[data-testid="stSidebar"] h3 {
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+::-webkit-scrollbar-thumb:hover { background: #4F46E5; }
 
-/* Plotly dark fix */
+/* Plotly transparent */
 .js-plotly-plot .plotly .bg { fill: transparent !important; }
+
+/* Streamlit text colors on dark */
+.stMarkdown, .stMarkdown p, .stMarkdown span {
+    color: #E2E8F0 !important;
+}
+.stMarkdown strong {
+    color: #F8FAFC !important;
+}
+.stAlert {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: #E2E8F0 !important;
+}
 </style>
-
-<!-- NEURAL NETWORK CANVAS -->
-<canvas id="neural-canvas"></canvas>
-<script>
-(function() {
-    const canvas = document.getElementById('neural-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    let W, H;
-    function resize() {
-        W = canvas.width = window.innerWidth;
-        H = canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    const NUM = 80;
-    const MAX_DIST = 150;
-    const dots = [];
-
-    for (let i = 0; i < NUM; i++) {
-        dots.push({
-            x: Math.random() * W,
-            y: Math.random() * H,
-            vx: (Math.random() - 0.5) * 0.6,
-            vy: (Math.random() - 0.5) * 0.6,
-            r: Math.random() * 2 + 1
-        });
-    }
-
-    function draw() {
-        ctx.clearRect(0, 0, W, H);
-
-        // Draw connections
-        for (let i = 0; i < NUM; i++) {
-            for (let j = i + 1; j < NUM; j++) {
-                const dx = dots[i].x - dots[j].x;
-                const dy = dots[i].y - dots[j].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < MAX_DIST) {
-                    const alpha = (1 - dist / MAX_DIST) * 0.25;
-                    ctx.beginPath();
-                    ctx.strokeStyle = `rgba(129,140,248,${alpha})`;
-                    ctx.lineWidth = 0.8;
-                    ctx.moveTo(dots[i].x, dots[i].y);
-                    ctx.lineTo(dots[j].x, dots[j].y);
-                    ctx.stroke();
-                }
-            }
-        }
-
-        // Draw dots
-        for (let i = 0; i < NUM; i++) {
-            const d = dots[i];
-            // Glow
-            ctx.beginPath();
-            const grd = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 4);
-            grd.addColorStop(0, 'rgba(129,140,248,0.3)');
-            grd.addColorStop(1, 'rgba(129,140,248,0)');
-            ctx.fillStyle = grd;
-            ctx.arc(d.x, d.y, d.r * 4, 0, Math.PI * 2);
-            ctx.fill();
-            // Core
-            ctx.beginPath();
-            ctx.fillStyle = `rgba(165,180,252,${0.6 + Math.random() * 0.4})`;
-            ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Move
-            d.x += d.vx;
-            d.y += d.vy;
-            if (d.x < 0 || d.x > W) d.vx *= -1;
-            if (d.y < 0 || d.y > H) d.vy *= -1;
-        }
-
-        requestAnimationFrame(draw);
-    }
-    draw();
-})();
-</script>
 """, unsafe_allow_html=True)
 
 # ============================================================
@@ -774,7 +722,7 @@ def view_header():
     <div class="main-header">
         <h1>⚡ Sales Transfer Dashboard</h1>
         <p>Real-time monitoring — only completed (done) transfers are counted</p>
-        <div class="header-badges">
+        <div class="h-badges">
             <div class="h-badge"><div class="live-dot"></div> Live</div>
             <div class="h-badge">🔄 Auto-refresh 45s</div>
             <div class="h-badge">📅 {datetime.now().strftime("%b %d, %Y %H:%M")}</div>
@@ -789,23 +737,23 @@ def view_kpis(k):
     with c4: st.metric("🗓️ This Month", f"{k['tm']:,}", f"{k['mp']:+.1f}% vs last month ({k['lm']})")
 
 def view_status(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> Status Overview</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title"><div class="sec-dot"></div> Status Overview</div>', unsafe_allow_html=True)
     st.markdown(f"""
-    <div class="glass-card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <div class="g-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;">
             <div class="card-ico">📋</div>
             <div>
-                <strong style="font-size:17px;">Transfer Status Breakdown</strong>
-                <p style="margin:2px 0 0 0;font-size:12px;">Only "done" entries count as completed transfers</p>
+                <strong style="font-size:17px;color:#F8FAFC;">Transfer Status Breakdown</strong>
+                <p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Only "done" entries count as completed transfers</p>
             </div>
         </div>
-        <div class="status-grid">
+        <div class="s-grid" style="position:relative;z-index:2;">
             <div class="s-card s-done">
                 <div class="s-ico">✅</div>
                 <div class="s-val">{k['done']}</div>
                 <div class="s-lbl">Completed</div>
             </div>
-            <div class="s-card s-pending">
+            <div class="s-card s-pend">
                 <div class="s-ico">⏳</div>
                 <div class="s-val">{k['pend']}</div>
                 <div class="s-lbl">Pending / Other</div>
@@ -819,12 +767,11 @@ def view_status(k):
     </div>""", unsafe_allow_html=True)
 
 def view_performers(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> Performance Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title"><div class="sec-dot"></div> Performance Analysis</div>', unsafe_allow_html=True)
     c1,c2 = st.columns(2)
-
     with c1:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">🏆</div><div><strong style="font-size:17px;">Top Performers</strong><p style="margin:2px 0 0 0;font-size:12px;">Highest completed transfers</p></div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="g-card">', unsafe_allow_html=True)
+        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">🏆</div><div><strong style="font-size:17px;color:#F8FAFC;">Top Performers</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Highest completed transfers</p></div></div>', unsafe_allow_html=True)
         t1,t2,t3 = st.tabs(["Today","This Week","This Month"])
         for tab,key in [(t1,"ac_t"),(t2,"ac_w"),(t3,"ac_m")]:
             with tab:
@@ -832,19 +779,19 @@ def view_performers(k):
                 if not counts.empty:
                     ag = counts.index[0]; cnt = int(counts.iloc[0])
                     st.markdown(f"""
-                    <div class="top-hero">
+                    <div class="top-hero" style="position:relative;z-index:2;">
                         <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
                             <div style="width:48px;height:48px;background:linear-gradient(135deg,#F59E0B,#D97706);
                             border-radius:13px;display:flex;align-items:center;justify-content:center;
                             font-size:24px;box-shadow:0 6px 16px rgba(245,158,11,0.3);">🥇</div>
                             <div>
-                                <strong style="font-size:18px;color:#F8FAFC !important;">{ag}</strong>
-                                <p style="margin:0;font-size:11px;">Top performer</p>
+                                <strong style="font-size:18px;color:#F8FAFC;">{ag}</strong>
+                                <p style="margin:0;font-size:11px;color:#94A3B8;">Top performer</p>
                             </div>
                         </div>
                         <div style="display:flex;align-items:baseline;gap:6px;">
-                            <span style="font-size:42px;font-weight:900;color:#FBBF24 !important;letter-spacing:-2px;line-height:1;animation:countPop 0.6s ease 0.2s both;">{cnt}</span>
-                            <span style="font-size:13px;color:#94A3B8 !important;">completed transfers</span>
+                            <span style="font-size:42px;font-weight:900;color:#FBBF24;letter-spacing:-2px;line-height:1;animation:countPop 0.6s ease 0.2s both;">{cnt}</span>
+                            <span style="font-size:13px;color:#94A3B8;">completed transfers</span>
                         </div>
                     </div>""", unsafe_allow_html=True)
                 else:
@@ -852,8 +799,8 @@ def view_performers(k):
         st.markdown('</div>', unsafe_allow_html=True)
 
     with c2:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;">Agent Rankings</strong><p style="margin:2px 0 0 0;font-size:12px;">All-time completed transfers</p></div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="g-card">', unsafe_allow_html=True)
+        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:#F8FAFC;">Agent Rankings</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">All-time completed transfers</p></div></div>', unsafe_allow_html=True)
         ac = k.get("ac",pd.Series())
         if not ac.empty:
             low = k.get("low",""); mx = ac.max()
@@ -862,31 +809,31 @@ def view_performers(k):
                 bw = (cnt/mx*100) if mx>0 else 0
                 is_low = ag==low and len(ac)>1
                 st.markdown(f"""
-                <div class="rank-row {"rank-low" if is_low else ""}" style="animation-delay:{i*0.06}s;">
+                <div class="rank-row {"rank-low" if is_low else ""}" style="animation-delay:{i*0.06}s;position:relative;z-index:2;">
                     <div style="flex:1;">
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span style="font-size:16px;">{m}</span>
-                            <span style="font-weight:700;color:#E2E8F0 !important;font-size:14px;">{ag}</span>
+                            <span style="font-weight:700;color:#E2E8F0;font-size:14px;">{ag}</span>
                         </div>
-                        <div class="bar-track"><div class="bar-fill" style="width:{bw}%;animation-delay:{i*0.06}s;"></div></div>
+                        <div class="bar-trk"><div class="bar-fl" style="width:{bw}%;animation-delay:{i*0.06}s;"></div></div>
                     </div>
-                    <span style="color:#818CF8 !important;font-weight:800;font-size:18px;margin-left:12px;">{int(cnt)}</span>
+                    <span style="color:#818CF8;font-weight:800;font-size:18px;margin-left:12px;">{int(cnt)}</span>
                 </div>""", unsafe_allow_html=True)
             if len(ac)>1:
                 st.markdown(f"""
-                <div class="insight-box insight-danger">
+                <div class="ins-box ins-danger" style="position:relative;z-index:2;">
                     <span style="font-size:22px;">📉</span>
-                    <div><strong style="color:#EF4444 !important;font-size:12px;">Needs Support</strong>
-                    <p style="margin:2px 0 0 0;font-size:13px;">{low} ({int(ac.min())} transfers)</p></div>
+                    <div><strong style="color:#EF4444;font-size:12px;">Needs Support</strong>
+                    <p style="margin:2px 0 0 0;font-size:13px;color:#E2E8F0;">{low} ({int(ac.min())} transfers)</p></div>
                 </div>""", unsafe_allow_html=True)
         else:
             st.info("No agent data")
         st.markdown('</div>', unsafe_allow_html=True)
 
 def view_transfers(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> Transfer Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📊</div><div><strong style="font-size:17px;">Transfer Destinations</strong><p style="margin:2px 0 0 0;font-size:12px;">Where completed transfers are directed</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title"><div class="sec-dot"></div> Transfer Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="g-card">', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">📊</div><div><strong style="font-size:17px;color:#F8FAFC;">Transfer Destinations</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Where completed transfers are directed</p></div></div>', unsafe_allow_html=True)
 
     tc = k.get("tc",pd.Series())
     if not tc.empty:
@@ -910,7 +857,7 @@ def view_transfers(k):
             st.plotly_chart(fig,use_container_width=True)
 
         st.markdown(f"""
-        <div class="highlight-box">
+        <div class="hl-box" style="position:relative;z-index:2;">
             <div class="hl-ico">🎯</div>
             <div>
                 <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;">Most Transferred To</div>
@@ -923,9 +870,9 @@ def view_transfers(k):
     st.markdown('</div>', unsafe_allow_html=True)
 
 def view_agents(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> Agent Details</div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">👤</div><div><strong style="font-size:17px;">Agent Performance</strong><p style="margin:2px 0 0 0;font-size:12px;">Completed transfers only</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title"><div class="sec-dot"></div> Agent Details</div>', unsafe_allow_html=True)
+    st.markdown('<div class="g-card">', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">👤</div><div><strong style="font-size:17px;color:#F8FAFC;">Agent Performance</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Completed transfers only</p></div></div>', unsafe_allow_html=True)
 
     ac = k.get("ac",pd.Series())
     if not ac.empty:
@@ -933,7 +880,6 @@ def view_agents(k):
         sel = st.selectbox("Select Agent:",["All Agents"]+names,key="asel")
         dd = k.get("done_df",pd.DataFrame())
         filt = dd if sel=="All Agents" else dd[dd["Agent Name"]==sel]
-
         tdf,wdf,mdf = k["tdf"],k["wdf"],k["mdf"]
         if sel!="All Agents":
             t=len(tdf[tdf["Agent Name"]==sel]); w=len(wdf[wdf["Agent Name"]==sel]); m=len(mdf[mdf["Agent Name"]==sel])
@@ -961,9 +907,9 @@ def view_agents(k):
     st.markdown('</div>',unsafe_allow_html=True)
 
 def view_trends(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> Trend Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;">Time Series</strong><p style="margin:2px 0 0 0;font-size:12px;">Completed transfer trends</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title"><div class="sec-dot"></div> Trend Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="g-card">', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:#F8FAFC;">Time Series</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Completed transfer trends</p></div></div>', unsafe_allow_html=True)
 
     dd = k.get("done_df",pd.DataFrame())
     if not dd.empty:
@@ -1043,7 +989,7 @@ def main():
         time.sleep(45); st.rerun()
 
     st.markdown(f"""
-    <div class="success-banner">
+    <div class="ok-banner">
         ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k['done']} completed</strong> transfers counted · {k['pend']} pending
     </div>""", unsafe_allow_html=True)
 
@@ -1056,7 +1002,7 @@ def main():
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.markdown(f"""
-    <div class="footer-bar">
+    <div class="foot-bar">
         🟢 System Online &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
     </div>""", unsafe_allow_html=True)
 
