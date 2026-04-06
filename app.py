@@ -969,22 +969,10 @@ def calculate_kpis(df):
     if df.empty:
         return {}
 
-    # Better status normalization
-    if "Status" in df.columns:
-        # Convert to string and strip whitespace
-        df["Status"] = df["Status"].astype(str).str.strip().str.lower()
-        # Handle case variations like "Done", "DONE", "done"
-        done_df = df[df["Status"] == "done"].copy()
-        done_count = len(done_df)
-        total_rows = len(df)
-        pending_count = total_rows - done_count
-        completion_rate = (done_count / total_rows * 100) if total_rows > 0 else 0
-    else:
-        done_count = 0
-        total_rows = 0
-        pending_count = 0
-        completion_rate = 0
-        done_df = pd.DataFrame()
+    done_df = df[df["Status"] == "done"].copy()
+    total_rows = len(df)
+    done_count = len(done_df)
+    pending_count = total_rows - done_count
 
     today_s, today_e = get_today_range()
     yesterday_s, yesterday_e = get_yesterday_range()
@@ -1010,7 +998,7 @@ def calculate_kpis(df):
         "total_rows": total_rows,
         "done_count": done_count,
         "pending_count": pending_count,
-        "completion_rate": completion_rate,
+        "completion_rate": (done_count / total_rows * 100) if total_rows > 0 else 0,
         "total_transfers": done_count,
         "most_transferred": transfer_counts.index[0] if not transfer_counts.empty else "N/A",
         "most_transferred_count": int(transfer_counts.iloc[0]) if not transfer_counts.empty else 0,
@@ -1069,28 +1057,24 @@ def display_kpi_grid(kpis):
     cards = [
         {
             "cls": "kpi-1", "icon_cls": "kpi-icon-blue", "icon": "✅",
-            "label": "Completed Transfers", 
-            "value": f"{kpis.get('total_transfers', 0):,}",
+            "label": "Completed Transfers", "value": f"{kpis.get('total_transfers', 0):,}",
             "meta": f"{kpis.get('completion_rate', 0):.1f}% rate · {kpis.get('pending_count', 0)} pending"
         },
         {
             "cls": "kpi-2", "icon_cls": "kpi-icon-green", "icon": "📅",
-            "label": "Today", 
-            "value": f"{kpis.get('today_transfers', 0):,}",
+            "label": "Today", "value": f"{kpis.get('today_transfers', 0):,}",
             "change": kpis.get('daily_change_pct', 0),
             "meta": f"Yesterday: {kpis.get('yesterday_transfers', 0)}"
         },
         {
             "cls": "kpi-3", "icon_cls": "kpi-icon-orange", "icon": "📆",
-            "label": "This Week", 
-            "value": f"{kpis.get('this_week_transfers', 0):,}",
+            "label": "This Week", "value": f"{kpis.get('this_week_transfers', 0):,}",
             "change": kpis.get('weekly_change_pct', 0),
             "meta": f"Last week: {kpis.get('last_week_transfers', 0)}"
         },
         {
             "cls": "kpi-4", "icon_cls": "kpi-icon-purple", "icon": "🗓️",
-            "label": "This Month", 
-            "value": f"{kpis.get('this_month_transfers', 0):,}",
+            "label": "This Month", "value": f"{kpis.get('this_month_transfers', 0):,}",
             "change": kpis.get('monthly_change_pct', 0),
             "meta": f"Last month: {kpis.get('last_month_transfers', 0)}"
         }
@@ -1330,7 +1314,7 @@ def display_transfer_analysis(kpis):
             st.plotly_chart(fig, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # Most Transferred display
+        # FIXED: Most Transferred display
         most_name = kpis.get('most_transferred', 'N/A')
         most_count = kpis.get('most_transferred_count', 0)
 
