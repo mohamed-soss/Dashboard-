@@ -31,16 +31,16 @@ st.markdown("""
     --surface2: rgba(255,255,255,0.06);
     --border: rgba(255,255,255,0.08);
     --border2: rgba(255,255,255,0.12);
-    --text: #E2E8F0;
-    --text-muted: #94A3B8;
-    --text-bright: #F8FAFC;
+    --text: #FFFFFF;
+    --text-muted: rgba(255,255,255,0.85);
+    --text-bright: #FFFFFF;
     --success: #10B981;
     --warning: #F59E0B;
     --danger: #EF4444;
     --glow: rgba(79,70,229,0.4);
 }
 
-* { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+* { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #FFFFFF !important; }
 
 .stApp {
     background: var(--bg) !important;
@@ -158,7 +158,7 @@ st.markdown("""
     position: relative; z-index: 2;
 }
 .main-header p {
-    color: rgba(255,255,255,0.7) !important;
+    color: rgba(255,255,255,0.9) !important;
     font-size: 14px; margin: 6px 0 0 0;
     position: relative; z-index: 2;
 }
@@ -173,7 +173,7 @@ st.markdown("""
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 20px;
     padding: 5px 14px;
-    font-size: 12px; color: rgba(255,255,255,0.85);
+    font-size: 12px; color: white !important;
     transition: all 0.3s ease;
 }
 .h-badge:hover {
@@ -225,28 +225,28 @@ div[data-testid="stMetric"]:hover {
 }
 
 div[data-testid="stMetric"] label {
-    color: var(--text-muted) !important;
+    color: white !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 1px !important;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-    color: var(--text-bright) !important;
+    color: white !important;
     font-size: 36px !important;
     font-weight: 900 !important;
     letter-spacing: -1.5px !important;
     animation: countPop 0.7s cubic-bezier(0.16,1,0.3,1) 0.5s both;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
-    color: var(--text-muted) !important;
+    color: rgba(255,255,255,0.85) !important;
     font-size: 12px !important;
     font-weight: 500 !important;
 }
 
 /* ==================== SECTION HEADERS ==================== */
 .section-title {
-    color: var(--text-bright);
+    color: white;
     font-size: 20px; font-weight: 800;
     margin: 36px 0 18px 0;
     padding-bottom: 12px;
@@ -290,10 +290,10 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     transform: translateY(-2px);
 }
 .glass-card h3, .glass-card strong {
-    color: var(--text-bright) !important;
+    color: white !important;
 }
 .glass-card p, .glass-card span {
-    color: var(--text-muted) !important;
+    color: rgba(255,255,255,0.85) !important;
 }
 
 /* Card icon */
@@ -358,16 +358,16 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     letter-spacing: -1px;
     animation: countPop 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both;
 }
-.s-done .s-val { color: #34D399; }
-.s-pending .s-val { color: #FBBF24; }
-.s-rate .s-val { color: #818CF8; }
+.s-done .s-val { color: white !important; }
+.s-pending .s-val { color: white !important; }
+.s-rate .s-val { color: white !important; }
 .s-lbl {
     font-size: 12px; font-weight: 600;
     margin-top: 4px;
 }
-.s-done .s-lbl { color: #6EE7B7; }
-.s-pending .s-lbl { color: #FCD34D; }
-.s-rate .s-lbl { color: #C7D2FE; }
+.s-done .s-lbl { color: white !important; }
+.s-pending .s-lbl { color: white !important; }
+.s-rate .s-lbl { color: white !important; }
 
 /* ==================== TOP PERFORMER ==================== */
 .top-hero {
@@ -479,19 +479,19 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     border-radius: 10px;
     padding: 8px 20px;
     border: none !important;
-    color: var(--text-muted) !important;
+    color: white !important;
     font-weight: 600;
     font-size: 13px;
     transition: all 0.3s ease;
 }
 .stTabs [aria-selected="true"] {
     background: rgba(79,70,229,0.2) !important;
-    color: #A5B4FC !important;
+    color: white !important;
     font-weight: 700;
     box-shadow: 0 0 20px rgba(79,70,229,0.15);
 }
 .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
-    color: var(--text) !important;
+    color: white !important;
     background: rgba(255,255,255,0.04);
 }
 
@@ -501,21 +501,21 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     overflow: hidden !important;
     border: 1px solid var(--border) !important;
 }
-.stDataFrame table { color: var(--text) !important; }
+.stDataFrame table { color: white !important; }
 .stDataFrame th {
     background: rgba(79,70,229,0.1) !important;
-    color: #A5B4FC !important;
+    color: white !important;
     font-weight: 700 !important;
 }
-.stDataFrame td { color: var(--text) !important; }
+.stDataFrame td { color: white !important; }
 
 /* ==================== SELECTBOX ==================== */
-.stSelectbox label { color: var(--text-muted) !important; }
+.stSelectbox label { color: white !important; }
 .stSelectbox > div > div {
     border-radius: 10px !important;
     border-color: var(--border2) !important;
     background: rgba(255,255,255,0.04) !important;
-    color: var(--text) !important;
+    color: white !important;
 }
 
 /* ==================== SUCCESS BANNER ==================== */
@@ -527,7 +527,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     margin-bottom: 14px;
     display: flex; align-items: center; gap: 12px;
     animation: fadeDown 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
-    color: #6EE7B7;
+    color: white !important;
     font-size: 14px; font-weight: 500;
 }
 
@@ -539,7 +539,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     border-radius: 16px;
     padding: 28px;
     animation: fadeUp 0.5s ease forwards;
-    color: var(--text);
+    color: white !important;
 }
 
 /* ==================== FOOTER ==================== */
@@ -551,7 +551,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     border: 1px solid var(--border);
     border-radius: 14px;
     text-align: center;
-    color: var(--text-muted);
+    color: white !important;
     font-size: 13px;
     animation: fadeUp 0.5s ease 0.8s both;
 }
@@ -562,7 +562,7 @@ section[data-testid="stSidebar"] {
     border-right: 1px solid rgba(255,255,255,0.05) !important;
 }
 section[data-testid="stSidebar"] * {
-    color: rgba(255,255,255,0.75) !important;
+    color: white !important;
 }
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
@@ -580,6 +580,11 @@ section[data-testid="stSidebar"] h3 {
 
 /* Plotly dark fix */
 .js-plotly-plot .plotly .bg { fill: transparent !important; }
+
+/* ==================== GLOBAL WHITE TEXT OVERRIDE ==================== */
+p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, small {
+    color: white !important;
+}
 </style>
 
 <!-- NEURAL NETWORK CANVAS -->
@@ -795,8 +800,8 @@ def view_status(k):
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
             <div class="card-ico">📋</div>
             <div>
-                <strong style="font-size:17px;">Transfer Status Breakdown</strong>
-                <p style="margin:2px 0 0 0;font-size:12px;">Only "done" entries count as completed transfers</p>
+                <strong style="font-size:17px;color:white !important;">Transfer Status Breakdown</strong>
+                <p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Only "done" entries count as completed transfers</p>
             </div>
         </div>
         <div class="status-grid">
@@ -824,7 +829,7 @@ def view_performers(k):
 
     with c1:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">🏆</div><div><strong style="font-size:17px;">Top Performers</strong><p style="margin:2px 0 0 0;font-size:12px;">Highest completed transfers</p></div></div>', unsafe_allow_html=True)
+        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">🏆</div><div><strong style="font-size:17px;color:white !important;">Top Performers</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Highest completed transfers</p></div></div>', unsafe_allow_html=True)
         t1,t2,t3 = st.tabs(["Today","This Week","This Month"])
         for tab,key in [(t1,"ac_t"),(t2,"ac_w"),(t3,"ac_m")]:
             with tab:
@@ -838,13 +843,13 @@ def view_performers(k):
                             border-radius:13px;display:flex;align-items:center;justify-content:center;
                             font-size:24px;box-shadow:0 6px 16px rgba(245,158,11,0.3);">🥇</div>
                             <div>
-                                <strong style="font-size:18px;color:#F8FAFC !important;">{ag}</strong>
-                                <p style="margin:0;font-size:11px;">Top performer</p>
+                                <strong style="font-size:18px;color:white !important;">{ag}</strong>
+                                <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.85) !important;">Top performer</p>
                             </div>
                         </div>
                         <div style="display:flex;align-items:baseline;gap:6px;">
-                            <span style="font-size:42px;font-weight:900;color:#FBBF24 !important;letter-spacing:-2px;line-height:1;animation:countPop 0.6s ease 0.2s both;">{cnt}</span>
-                            <span style="font-size:13px;color:#94A3B8 !important;">completed transfers</span>
+                            <span style="font-size:42px;font-weight:900;color:white !important;letter-spacing:-2px;line-height:1;animation:countPop 0.6s ease 0.2s both;">{cnt}</span>
+                            <span style="font-size:13px;color:rgba(255,255,255,0.85) !important;">completed transfers</span>
                         </div>
                     </div>""", unsafe_allow_html=True)
                 else:
@@ -853,12 +858,12 @@ def view_performers(k):
 
     with c2:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;">Agent Rankings</strong><p style="margin:2px 0 0 0;font-size:12px;">All-time completed transfers</p></div></div>', unsafe_allow_html=True)
+        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:white !important;">Agent Rankings</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">All-time completed transfers</p></div></div>', unsafe_allow_html=True)
         ac = k.get("ac",pd.Series())
         if not ac.empty:
             low = k.get("low",""); mx = ac.max()
             for i,(ag,cnt) in enumerate(ac.head(10).items(),1):
-                m = {1:"🥇",2:"🥈",3:"🥉"}.get(i,f'<span style="color:#64748B;font-weight:700;">{i}.</span>')
+                m = {1:"🥇",2:"🥈",3:"🥉"}.get(i,f'<span style="color:white !important;font-weight:700;">{i}.</span>')
                 bw = (cnt/mx*100) if mx>0 else 0
                 is_low = ag==low and len(ac)>1
                 st.markdown(f"""
@@ -866,18 +871,18 @@ def view_performers(k):
                     <div style="flex:1;">
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span style="font-size:16px;">{m}</span>
-                            <span style="font-weight:700;color:#E2E8F0 !important;font-size:14px;">{ag}</span>
+                            <span style="font-weight:700;color:white !important;font-size:14px;">{ag}</span>
                         </div>
                         <div class="bar-track"><div class="bar-fill" style="width:{bw}%;animation-delay:{i*0.06}s;"></div></div>
                     </div>
-                    <span style="color:#818CF8 !important;font-weight:800;font-size:18px;margin-left:12px;">{int(cnt)}</span>
+                    <span style="color:white !important;font-weight:800;font-size:18px;margin-left:12px;">{int(cnt)}</span>
                 </div>""", unsafe_allow_html=True)
             if len(ac)>1:
                 st.markdown(f"""
                 <div class="insight-box insight-danger">
                     <span style="font-size:22px;">📉</span>
-                    <div><strong style="color:#EF4444 !important;font-size:12px;">Needs Support</strong>
-                    <p style="margin:2px 0 0 0;font-size:13px;">{low} ({int(ac.min())} transfers)</p></div>
+                    <div><strong style="color:white !important;font-size:12px;">Needs Support</strong>
+                    <p style="margin:2px 0 0 0;font-size:13px;color:white !important;">{low} ({int(ac.min())} transfers)</p></div>
                 </div>""", unsafe_allow_html=True)
         else:
             st.info("No agent data")
@@ -886,13 +891,13 @@ def view_performers(k):
 def view_transfers(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Transfer Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📊</div><div><strong style="font-size:17px;">Transfer Destinations</strong><p style="margin:2px 0 0 0;font-size:12px;">Where completed transfers are directed</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📊</div><div><strong style="font-size:17px;color:white !important;">Transfer Destinations</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Where completed transfers are directed</p></div></div>', unsafe_allow_html=True)
 
     tc = k.get("tc",pd.Series())
     if not tc.empty:
         c1,c2 = st.columns(2)
         lo = dict(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                  font=dict(family='Inter',color='#94A3B8'), margin=dict(t=40,b=20,l=20,r=20))
+                  font=dict(family='Inter',color='white'), margin=dict(t=40,b=20,l=20,r=20))
         with c1:
             fig = px.pie(values=tc.values,names=tc.index,title="Distribution",
                 color_discrete_sequence=['#4F46E5','#06B6D4','#8B5CF6','#10B981','#F59E0B','#312E81'])
@@ -913,9 +918,9 @@ def view_transfers(k):
         <div class="highlight-box">
             <div class="hl-ico">🎯</div>
             <div>
-                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;">Most Transferred To</div>
-                <div style="font-size:22px;font-weight:900;color:#F8FAFC;margin-top:3px;">{k['dest']}</div>
-                <div style="font-size:12px;color:#64748B;margin-top:2px;">{k['dest_n']} completed transfers directed here</div>
+                <div style="font-size:11px;font-weight:700;color:white !important;text-transform:uppercase;letter-spacing:0.8px;">Most Transferred To</div>
+                <div style="font-size:22px;font-weight:900;color:white !important;margin-top:3px;">{k['dest']}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.85) !important;margin-top:2px;">{k['dest_n']} completed transfers directed here</div>
             </div>
         </div>""", unsafe_allow_html=True)
     else:
@@ -925,7 +930,7 @@ def view_transfers(k):
 def view_agents(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Agent Details</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">👤</div><div><strong style="font-size:17px;">Agent Performance</strong><p style="margin:2px 0 0 0;font-size:12px;">Completed transfers only</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">👤</div><div><strong style="font-size:17px;color:white !important;">Agent Performance</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Completed transfers only</p></div></div>', unsafe_allow_html=True)
 
     ac = k.get("ac",pd.Series())
     if not ac.empty:
@@ -947,7 +952,7 @@ def view_agents(k):
 
         if not filt.empty:
             lbl = f" — {sel}" if sel!="All Agents" else ""
-            st.markdown(f'<p style="color:#E2E8F0;font-weight:700;margin-top:20px;margin-bottom:8px;">Recent Completed Transfers{lbl}</p>',unsafe_allow_html=True)
+            st.markdown(f'<p style="color:white !important;font-weight:700;margin-top:20px;margin-bottom:8px;">Recent Completed Transfers{lbl}</p>',unsafe_allow_html=True)
             avail = [c for c in ["Timestamp","Agent Name","Customer Name:","Transfer to:","Status","Electric Bill:","Credit Score:"] if c in filt.columns]
             if avail:
                 recent = filt[avail].sort_values("Timestamp",ascending=False).head(10)
@@ -963,7 +968,7 @@ def view_agents(k):
 def view_trends(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Trend Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;">Time Series</strong><p style="margin:2px 0 0 0;font-size:12px;">Completed transfer trends</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:white !important;">Time Series</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Completed transfer trends</p></div></div>', unsafe_allow_html=True)
 
     dd = k.get("done_df",pd.DataFrame())
     if not dd.empty:
@@ -979,7 +984,7 @@ def view_trends(k):
         monthly['Mo'] = monthly['Mo'].astype(str)
 
         lo = dict(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                  font=dict(family='Inter',color='#94A3B8'), margin=dict(t=40,b=40,l=40,r=20),
+                  font=dict(family='Inter',color='white'), margin=dict(t=40,b=40,l=40,r=20),
                   xaxis=dict(gridcolor='rgba(255,255,255,0.04)',zeroline=False),
                   yaxis=dict(gridcolor='rgba(255,255,255,0.04)',zeroline=False))
 
@@ -1023,8 +1028,8 @@ def main():
     if df.empty:
         st.markdown("""
         <div class="warn-card">
-            <h3 style="color:#FBBF24;margin-top:0;">⚠️ No data available</h3>
-            <p style="color:#E2E8F0;line-height:1.8;">
+            <h3 style="color:white !important;margin-top:0;">⚠️ No data available</h3>
+            <p style="color:white !important;line-height:1.8;">
                 <strong>Check:</strong><br>
                 1. Google Sheet shared with service account<br>
                 2. Data exists in "Form Responses 1"<br>
