@@ -9,210 +9,219 @@ from googleapiclient.discovery import build
 
 st.set_page_config(
     page_title="Sales Transfer Dashboard",
-    page_icon="⚡",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ============================================================
-# NEURAL NETWORK BACKGROUND - using components.html() so JS runs
+# NEURAL BACKGROUND - subtle light theme dots
 # ============================================================
-neural_html = """
-<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;overflow:hidden;background:#0A0E27;">
+components.html("""
+<!DOCTYPE html>
+<html><head><style>
+*{margin:0;padding:0;}
+body{overflow:hidden;background:#F8FAFF;}
+canvas{display:block;position:fixed;top:0;left:0;z-index:0;}
+</style></head><body>
 <canvas id="c"></canvas>
-</div>
-<style>
-body{margin:0;overflow:hidden;background:#0A0E27;}
-</style>
 <script>
 (function(){
     var c=document.getElementById('c');
     var ctx=c.getContext('2d');
     var W,H;
-    function resize(){
-        W=c.width=window.innerWidth;
-        H=c.height=window.innerHeight;
-    }
+    function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
     resize();
     window.addEventListener('resize',resize);
-    var N=90;
-    var MAX=160;
-    var pts=[];
+    var dots=[];
+    var N=70;
     for(var i=0;i<N;i++){
-        pts.push({
-            x:Math.random()*W,
-            y:Math.random()*H,
-            vx:(Math.random()-0.5)*0.5,
-            vy:(Math.random()-0.5)*0.5,
-            r:Math.random()*1.8+0.8
+        dots.push({
+            x:Math.random()*2000,
+            y:Math.random()*2000,
+            vx:(Math.random()-0.5)*0.35,
+            vy:(Math.random()-0.5)*0.35,
+            r:Math.random()*2+1.2
         });
     }
-    function frame(){
+    var mouse={x:-1000,y:-1000};
+    document.addEventListener('mousemove',function(e){mouse.x=e.clientX;mouse.y=e.clientY;});
+    function draw(){
         ctx.clearRect(0,0,W,H);
         var i,j,dx,dy,dist,a;
+        // connections between dots
         for(i=0;i<N;i++){
             for(j=i+1;j<N;j++){
-                dx=pts[i].x-pts[j].x;
-                dy=pts[i].y-pts[j].y;
+                dx=dots[i].x-dots[j].x;
+                dy=dots[i].y-dots[j].y;
                 dist=Math.sqrt(dx*dx+dy*dy);
-                if(dist<MAX){
-                    a=(1-dist/MAX)*0.3;
+                if(dist<180){
+                    a=(1-dist/180)*0.15;
                     ctx.beginPath();
-                    ctx.strokeStyle='rgba(129,140,248,'+a+')';
-                    ctx.lineWidth=0.7;
-                    ctx.moveTo(pts[i].x,pts[i].y);
-                    ctx.lineTo(pts[j].x,pts[j].y);
+                    ctx.strokeStyle='rgba(99,102,241,'+a+')';
+                    ctx.lineWidth=0.8;
+                    ctx.moveTo(dots[i].x,dots[i].y);
+                    ctx.lineTo(dots[j].x,dots[j].y);
                     ctx.stroke();
                 }
             }
+            // connection to mouse
+            dx=dots[i].x-mouse.x;
+            dy=dots[i].y-mouse.y;
+            dist=Math.sqrt(dx*dx+dy*dy);
+            if(dist<220){
+                a=(1-dist/220)*0.3;
+                ctx.beginPath();
+                ctx.strokeStyle='rgba(99,102,241,'+a+')';
+                ctx.lineWidth=1.2;
+                ctx.moveTo(dots[i].x,dots[i].y);
+                ctx.lineTo(mouse.x,mouse.y);
+                ctx.stroke();
+            }
         }
+        // draw dots
         for(i=0;i<N;i++){
-            var p=pts[i];
+            var p=dots[i];
+            // soft glow
             ctx.beginPath();
-            var g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*5);
-            g.addColorStop(0,'rgba(129,140,248,0.25)');
-            g.addColorStop(1,'rgba(129,140,248,0)');
+            var g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*4);
+            g.addColorStop(0,'rgba(99,102,241,0.12)');
+            g.addColorStop(1,'rgba(99,102,241,0)');
             ctx.fillStyle=g;
-            ctx.arc(p.x,p.y,p.r*5,0,6.28);
+            ctx.arc(p.x,p.y,p.r*4,0,6.28);
             ctx.fill();
+            // core
             ctx.beginPath();
-            ctx.fillStyle='rgba(165,180,252,0.8)';
+            ctx.fillStyle='rgba(99,102,241,0.35)';
             ctx.arc(p.x,p.y,p.r,0,6.28);
             ctx.fill();
+            // move
             p.x+=p.vx;
             p.y+=p.vy;
-            if(p.x<0||p.x>W)p.vx*=-1;
-            if(p.y<0||p.y>H)p.vy*=-1;
+            if(p.x<-50)p.x=W+50;
+            if(p.x>W+50)p.x=-50;
+            if(p.y<-50)p.y=H+50;
+            if(p.y>H+50)p.y=-50;
         }
-        requestAnimationFrame(frame);
+        requestAnimationFrame(draw);
     }
-    frame();
+    draw();
 })();
 </script>
-"""
-components.html(neural_html, height=0, scrolling=False)
+</body></html>
+""", height=0, scrolling=False)
 
 # ============================================================
-# FULL CSS - dark glassmorphism over neural background
+# CSS - Clean light premium theme
 # ============================================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-* { font-family: 'Inter', sans-serif; }
+* { font-family: 'Plus Jakarta Sans', sans-serif; }
 
-/* Make the Streamlit app background transparent so neural net shows through */
 .stApp {
-    background: transparent !important;
-}
-.stApp > div:first-child {
     background: transparent !important;
 }
 .main .block-container {
     background: transparent !important;
     position: relative;
     z-index: 10;
+    max-width: 1400px;
 }
 
 /* ==================== ANIMATIONS ==================== */
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
+    from { opacity: 0; transform: translateY(28px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeDown {
-    from { opacity: 0; transform: translateY(-25px); }
+    from { opacity: 0; transform: translateY(-20px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.88); }
+    from { opacity: 0; transform: scale(0.92); }
     to   { opacity: 1; transform: scale(1); }
 }
 @keyframes slideLeft {
-    from { opacity: 0; transform: translateX(-40px); }
+    from { opacity: 0; transform: translateX(-30px); }
     to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes slideRight {
-    from { opacity: 0; transform: translateX(40px); }
+    from { opacity: 0; transform: translateX(30px); }
     to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes countPop {
-    0%   { opacity: 0; transform: scale(0.5); filter: blur(8px); }
-    60%  { transform: scale(1.08); filter: blur(0); }
+    0%   { opacity: 0; transform: scale(0.5); filter: blur(6px); }
+    60%  { transform: scale(1.06); filter: blur(0); }
     100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
-@keyframes barGrow {
-    from { width: 0%; }
-}
+@keyframes barGrow { from { width: 0%; } }
 @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.8); }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
-@keyframes gradientShift {
+@keyframes gradientMove {
     0%   { background-position: 0% 50%; }
     50%  { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
 @keyframes float {
     0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+    50% { transform: translateY(-6px); }
 }
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(79,70,229,0.15); }
-    50% { box-shadow: 0 0 40px rgba(79,70,229,0.3); }
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
 }
-@keyframes borderShimmer {
-    0%   { border-color: rgba(79,70,229,0.15); }
-    50%  { border-color: rgba(79,70,229,0.4); }
-    100% { border-color: rgba(79,70,229,0.15); }
-}
-@keyframes ripple {
-    to { transform: scale(3); opacity: 0; }
+@keyframes borderDraw {
+    from { clip-path: inset(0 100% 0 0); }
+    to   { clip-path: inset(0 0 0 0); }
 }
 
 /* ==================== HEADER ==================== */
 .main-header {
-    background: linear-gradient(135deg, #1E1B4B 0%, #312E81 25%, #4338CA 50%, #6366F1 75%, #0891B2 100%);
+    background: linear-gradient(135deg, #4F46E5 0%, #6366F1 30%, #818CF8 60%, #0EA5E9 100%);
     background-size: 300% 300%;
-    animation: gradientShift 10s ease infinite, fadeDown 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
+    animation: gradientMove 8s ease infinite, fadeDown 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
     border-radius: 20px;
-    padding: 32px 40px;
+    padding: 34px 40px;
     margin-bottom: 28px;
     color: white;
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 100px rgba(79,70,229,0.15);
+    box-shadow: 0 8px 32px rgba(99,102,241,0.25), 0 2px 8px rgba(0,0,0,0.08);
 }
 .main-header::before {
     content: '';
     position: absolute;
-    top: -60%; right: -8%;
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(129,140,248,0.12), transparent 60%);
+    top: -40%; right: -5%;
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 60%);
     border-radius: 50%;
-    animation: float 6s ease infinite;
+    animation: float 5s ease infinite;
 }
 .main-header::after {
     content: '';
     position: absolute;
-    bottom: -50%; left: 15%;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(6,182,212,0.08), transparent 60%);
+    bottom: -30%; left: 20%;
+    width: 250px; height: 250px;
+    background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 60%);
     border-radius: 50%;
-    animation: float 8s ease infinite reverse;
+    animation: float 7s ease infinite reverse;
 }
 .main-header h1 {
     color: white !important;
-    font-size: 30px !important;
-    font-weight: 900 !important;
+    font-size: 28px !important;
+    font-weight: 800 !important;
     margin: 0 !important;
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
     position: relative; z-index: 2;
 }
 .main-header p {
-    color: rgba(255,255,255,0.7) !important;
+    color: rgba(255,255,255,0.8) !important;
     font-size: 14px !important;
-    margin: 6px 0 0 0 !important;
+    margin: 5px 0 0 0 !important;
     position: relative; z-index: 2;
 }
 .h-badges {
@@ -221,364 +230,344 @@ st.markdown("""
 }
 .h-badge {
     display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
     border-radius: 20px;
     padding: 5px 14px;
-    font-size: 12px; color: rgba(255,255,255,0.85);
+    font-size: 12px; color: rgba(255,255,255,0.9);
+    font-weight: 500;
     transition: all 0.3s ease;
 }
 .h-badge:hover {
-    background: rgba(255,255,255,0.15);
-    transform: translateY(-2px);
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-1px);
 }
 .live-dot {
     width: 8px; height: 8px;
     background: #34D399;
     border-radius: 50%;
     animation: pulse 2s ease infinite;
-    box-shadow: 0 0 10px rgba(52,211,153,0.6);
+    box-shadow: 0 0 8px rgba(52,211,153,0.5);
 }
 
 /* ==================== KPI METRICS ==================== */
 div[data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
-    backdrop-filter: blur(24px) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
+    background: white !important;
+    border: 1px solid #E5E7EB !important;
     border-radius: 16px !important;
     padding: 22px 24px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02) !important;
     transition: all 0.5s cubic-bezier(0.16,1,0.3,1) !important;
     animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both !important;
     position: relative !important;
     overflow: hidden !important;
 }
-div[data-testid="stMetric"]:nth-child(1) { animation-delay: 0.1s !important; }
-div[data-testid="stMetric"]:nth-child(2) { animation-delay: 0.2s !important; }
-div[data-testid="stMetric"]:nth-child(3) { animation-delay: 0.3s !important; }
-div[data-testid="stMetric"]:nth-child(4) { animation-delay: 0.4s !important; }
+div[data-testid="stMetric"]:nth-child(1) { animation-delay: 0.05s !important; }
+div[data-testid="stMetric"]:nth-child(2) { animation-delay: 0.12s !important; }
+div[data-testid="stMetric"]:nth-child(3) { animation-delay: 0.19s !important; }
+div[data-testid="stMetric"]:nth-child(4) { animation-delay: 0.26s !important; }
 
-div[data-testid="stMetric"]::before {
+div[data-testid="stMetric"]::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #4F46E5, #06B6D4, #8B5CF6);
+    height: 3px;
+    background: linear-gradient(90deg, #6366F1, #0EA5E9);
     transform: scaleX(0);
-    transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
     transform-origin: left;
+    transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+    border-radius: 0 0 3px 3px;
 }
-div[data-testid="stMetric"]:hover::before { transform: scaleX(1) !important; }
+div[data-testid="stMetric"]:hover::after { transform: scaleX(1) !important; }
 
 div[data-testid="stMetric"]:hover {
-    transform: translateY(-6px) !important;
-    box-shadow: 0 20px 50px rgba(79,70,229,0.2), 0 0 40px rgba(79,70,229,0.08) !important;
-    border-color: rgba(129,140,248,0.35) !important;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04)) !important;
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 32px rgba(99,102,241,0.12), 0 4px 12px rgba(0,0,0,0.06) !important;
+    border-color: #C7D2FE !important;
 }
 
 div[data-testid="stMetric"] label {
-    color: #94A3B8 !important;
-    font-size: 11px !important;
+    color: #6B7280 !important;
+    font-size: 12px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 0.5px !important;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-    color: #F8FAFC !important;
-    font-size: 36px !important;
-    font-weight: 900 !important;
-    letter-spacing: -1.5px !important;
-    animation: countPop 0.7s cubic-bezier(0.16,1,0.3,1) 0.5s both !important;
+    color: #1E1B4B !important;
+    font-size: 34px !important;
+    font-weight: 800 !important;
+    letter-spacing: -1px !important;
+    animation: countPop 0.6s cubic-bezier(0.16,1,0.3,1) 0.4s both !important;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
-    color: #94A3B8 !important;
+    color: #6B7280 !important;
     font-size: 12px !important;
 }
 
 /* ==================== SECTION HEADERS ==================== */
 .sec-title {
-    color: #F8FAFC;
+    color: #1E1B4B;
     font-size: 20px; font-weight: 800;
-    margin: 36px 0 18px 0;
-    padding-bottom: 12px;
-    border-bottom: 2px solid;
-    border-image: linear-gradient(90deg, #4F46E5, #06B6D4, transparent) 1;
-    animation: slideLeft 0.6s cubic-bezier(0.16,1,0.3,1) both;
-    letter-spacing: -0.5px;
+    margin: 32px 0 16px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #E5E7EB;
+    animation: slideLeft 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    letter-spacing: -0.3px;
     display: flex; align-items: center; gap: 10px;
 }
 .sec-dot {
-    width: 10px; height: 10px;
-    background: #4F46E5;
+    width: 8px; height: 8px;
+    background: #6366F1;
     border-radius: 50%;
-    box-shadow: 0 0 14px rgba(79,70,229,0.5);
-    animation: pulse 3s ease infinite;
+    box-shadow: 0 0 10px rgba(99,102,241,0.4);
 }
 
-/* ==================== GLASS CARDS ==================== */
+/* ==================== CARDS ==================== */
 .g-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
-    backdrop-filter: blur(24px) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    background: white !important;
+    border: 1px solid #E5E7EB !important;
     border-radius: 18px !important;
-    padding: 28px !important;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.3) !important;
+    padding: 26px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02) !important;
     animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both !important;
     transition: all 0.4s cubic-bezier(0.16,1,0.3,1) !important;
     position: relative !important;
-    overflow: hidden !important;
-}
-.g-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(79,70,229,0.03), transparent, rgba(6,182,212,0.02));
-    pointer-events: none;
-    border-radius: 18px;
 }
 .g-card:hover {
-    border-color: rgba(129,140,248,0.2) !important;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 50px rgba(79,70,229,0.08) !important;
-    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
+    border-color: #D1D5DB !important;
 }
 .card-ico {
-    width: 44px; height: 44px;
-    background: linear-gradient(135deg, #4F46E5, #06B6D4);
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #6366F1, #0EA5E9);
     border-radius: 12px;
     display: inline-flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 8px 20px rgba(79,70,229,0.3);
+    font-size: 18px;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.25);
     transition: all 0.3s ease;
 }
 .g-card:hover .card-ico {
-    transform: rotate(-5deg) scale(1.1);
-    box-shadow: 0 12px 28px rgba(79,70,229,0.4);
+    transform: rotate(-4deg) scale(1.05);
+    box-shadow: 0 6px 16px rgba(99,102,241,0.35);
 }
 
 /* ==================== STATUS CARDS ==================== */
 .s-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px; margin-top: 16px;
+    gap: 14px; margin-top: 14px;
 }
 .s-card {
     border-radius: 14px;
-    padding: 24px;
+    padding: 22px;
     text-align: center;
     transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
-    position: relative; overflow: hidden;
+    cursor: default;
 }
-.s-card:hover { transform: translateY(-4px) scale(1.02); }
+.s-card:hover { transform: translateY(-4px); }
 .s-done {
-    background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04));
-    border: 1px solid rgba(16,185,129,0.2);
+    background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+    border: 1px solid #A7F3D0;
 }
 .s-pend {
-    background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.04));
-    border: 1px solid rgba(245,158,11,0.2);
+    background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+    border: 1px solid #FDE68A;
 }
 .s-rate {
-    background: linear-gradient(135deg, rgba(79,70,229,0.12), rgba(79,70,229,0.04));
-    border: 1px solid rgba(79,70,229,0.2);
+    background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
+    border: 1px solid #C7D2FE;
 }
-.s-ico { font-size: 30px; margin-bottom: 8px; }
+.s-ico { font-size: 28px; margin-bottom: 6px; }
 .s-val {
-    font-size: 36px; font-weight: 900;
+    font-size: 34px; font-weight: 800;
     letter-spacing: -1px;
-    animation: countPop 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both;
+    animation: countPop 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s both;
 }
-.s-done .s-val { color: #34D399; }
-.s-pend .s-val { color: #FBBF24; }
-.s-rate .s-val { color: #818CF8; }
-.s-lbl { font-size: 12px; font-weight: 600; margin-top: 4px; }
-.s-done .s-lbl { color: #6EE7B7; }
-.s-pend .s-lbl { color: #FCD34D; }
-.s-rate .s-lbl { color: #C7D2FE; }
+.s-done .s-val { color: #059669; }
+.s-pend .s-val { color: #D97706; }
+.s-rate .s-val { color: #4F46E5; }
+.s-lbl { font-size: 12px; font-weight: 600; margin-top: 2px; }
+.s-done .s-lbl { color: #047857; }
+.s-pend .s-lbl { color: #B45309; }
+.s-rate .s-lbl { color: #4338CA; }
 
 /* ==================== TOP PERFORMER ==================== */
 .top-hero {
-    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.03));
-    border: 1px solid rgba(245,158,11,0.15);
+    background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+    border: 1px solid #FDE68A;
     border-radius: 14px;
     padding: 22px;
-    margin: 14px 0;
+    margin: 12px 0;
     animation: scaleIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
     transition: all 0.3s ease;
 }
 .top-hero:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(245,158,11,0.12);
+    box-shadow: 0 12px 28px rgba(245,158,11,0.12);
 }
 
 /* ==================== RANKING ==================== */
 .rank-row {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px; margin: 7px 0;
+    padding: 11px 14px; margin: 6px 0;
     border-radius: 12px;
-    background: rgba(255,255,255,0.02);
+    background: #F9FAFB;
     border: 1px solid transparent;
     transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
     animation: slideRight 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    cursor: default;
 }
 .rank-row:hover {
-    background: rgba(255,255,255,0.06) !important;
-    border-color: rgba(129,140,248,0.2) !important;
-    transform: translateX(6px) !important;
-    box-shadow: 0 8px 24px rgba(79,70,229,0.1) !important;
+    background: white !important;
+    border-color: #C7D2FE !important;
+    transform: translateX(4px) !important;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.08) !important;
 }
 .rank-low {
-    background: rgba(239,68,68,0.04) !important;
-    border-color: rgba(239,68,68,0.1) !important;
+    background: #FEF2F2 !important;
+    border-color: #FECACA !important;
 }
 .rank-low:hover {
-    border-color: rgba(239,68,68,0.25) !important;
-    box-shadow: 0 8px 24px rgba(239,68,68,0.08) !important;
+    border-color: #FCA5A5 !important;
+    box-shadow: 0 4px 16px rgba(239,68,68,0.06) !important;
 }
 .bar-trk {
-    background: rgba(255,255,255,0.06);
+    background: #F3F4F6;
     border-radius: 4px; height: 5px;
     margin-top: 6px; overflow: hidden;
 }
 .bar-fl {
     height: 100%; border-radius: 4px;
-    background: linear-gradient(90deg, #4F46E5, #06B6D4);
-    animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) both;
+    background: linear-gradient(90deg, #6366F1, #0EA5E9);
+    animation: barGrow 1s cubic-bezier(0.16,1,0.3,1) both;
 }
 
 /* ==================== HIGHLIGHT ==================== */
 .hl-box {
-    margin-top: 18px; padding: 20px 24px;
-    background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(6,182,212,0.06));
-    border: 1px solid rgba(79,70,229,0.18);
+    margin-top: 16px; padding: 18px 22px;
+    background: linear-gradient(135deg, #EEF2FF, #F0F9FF);
+    border: 1px solid #C7D2FE;
     border-radius: 14px;
-    display: flex; align-items: center; gap: 16px;
+    display: flex; align-items: center; gap: 14px;
     animation: scaleIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.3s both;
     transition: all 0.4s ease;
 }
 .hl-box:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(79,70,229,0.12);
-    border-color: rgba(129,140,248,0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.08);
 }
 .hl-ico {
-    width: 50px; height: 50px;
-    background: linear-gradient(135deg, #4F46E5, #06B6D4);
-    border-radius: 14px;
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #6366F1, #0EA5E9);
+    border-radius: 13px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    box-shadow: 0 8px 20px rgba(79,70,229,0.3);
+    font-size: 20px;
+    box-shadow: 0 6px 16px rgba(99,102,241,0.25);
     flex-shrink: 0;
 }
 
 /* ==================== INSIGHT ==================== */
 .ins-box {
-    margin-top: 14px; padding: 14px 18px;
-    border-radius: 12px;
-    display: flex; align-items: center; gap: 12px;
-    animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.5s both;
+    margin-top: 12px; padding: 12px 16px;
+    border-radius: 10px;
+    display: flex; align-items: center; gap: 10px;
+    animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.4s both;
     transition: all 0.3s ease;
 }
-.ins-box:hover { transform: translateY(-2px); }
+.ins-box:hover { transform: translateY(-1px); }
 .ins-danger {
-    background: rgba(239,68,68,0.06);
-    border: 1px solid rgba(239,68,68,0.12);
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
 }
 
 /* ==================== TABS ==================== */
 .stTabs [data-baseweb="tab-list"] {
     gap: 4px !important;
-    background: rgba(255,255,255,0.04) !important;
+    background: #F3F4F6 !important;
     border-radius: 12px !important;
     padding: 4px !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    border: none !important;
 }
 .stTabs [data-baseweb="tab"] {
     background: transparent !important;
     border-radius: 10px !important;
     padding: 8px 20px !important;
     border: none !important;
-    color: #94A3B8 !important;
+    color: #6B7280 !important;
     font-weight: 600 !important;
     font-size: 13px !important;
     transition: all 0.3s ease !important;
 }
 .stTabs [aria-selected="true"] {
-    background: rgba(79,70,229,0.2) !important;
-    color: #A5B4FC !important;
+    background: white !important;
+    color: #4F46E5 !important;
     font-weight: 700 !important;
-    box-shadow: 0 0 20px rgba(79,70,229,0.15) !important;
-}
-.stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
-    color: #E2E8F0 !important;
-    background: rgba(255,255,255,0.04) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
 }
 
 /* ==================== DATAFRAME ==================== */
 .stDataFrame {
     border-radius: 14px !important;
     overflow: hidden !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    border: 1px solid #E5E7EB !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
 }
-.stDataFrame table { color: #E2E8F0 !important; }
 .stDataFrame th {
-    background: rgba(79,70,229,0.12) !important;
-    color: #A5B4FC !important;
+    background: #F3F4F6 !important;
+    color: #374151 !important;
     font-weight: 700 !important;
 }
-.stDataFrame td { color: #E2E8F0 !important; }
 
 /* ==================== SELECTBOX ==================== */
-.stSelectbox label { color: #94A3B8 !important; }
+.stSelectbox label { color: #374151 !important; font-weight: 600 !important; }
 .stSelectbox > div > div {
     border-radius: 10px !important;
-    border-color: rgba(255,255,255,0.1) !important;
-    background: rgba(255,255,255,0.04) !important;
-    color: #E2E8F0 !important;
+    border-color: #E5E7EB !important;
 }
 
 /* ==================== BANNERS ==================== */
 .ok-banner {
-    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.03));
-    border: 1px solid rgba(16,185,129,0.15);
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
     border-radius: 14px;
-    padding: 14px 22px;
-    margin-bottom: 14px;
-    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
     animation: fadeDown 0.5s cubic-bezier(0.16,1,0.3,1) both;
-    color: #6EE7B7;
+    color: #065F46;
     font-size: 14px; font-weight: 500;
 }
 .warn-card {
-    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.03));
-    border: 1px solid rgba(245,158,11,0.15);
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
     border-left: 4px solid #F59E0B;
     border-radius: 16px;
     padding: 28px;
     animation: fadeUp 0.5s ease both;
-    color: #E2E8F0;
+    color: #1F2937;
 }
 
 /* ==================== FOOTER ==================== */
 .foot-bar {
-    margin-top: 36px; padding: 16px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.08);
+    margin-top: 32px; padding: 14px;
+    background: white;
+    border: 1px solid #E5E7EB;
     border-radius: 14px;
     text-align: center;
-    color: #94A3B8;
+    color: #9CA3AF;
     font-size: 13px;
-    animation: fadeUp 0.5s ease 0.8s both;
+    animation: fadeUp 0.5s ease 0.6s both;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 /* ==================== SIDEBAR ==================== */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0F0D2E 0%, #0A0E27 100%) !important;
-    border-right: 1px solid rgba(255,255,255,0.05) !important;
+    background: linear-gradient(180deg, #1E1B4B, #0F172A) !important;
 }
 section[data-testid="stSidebar"] * {
-    color: rgba(255,255,255,0.75) !important;
+    color: rgba(255,255,255,0.8) !important;
 }
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
@@ -589,25 +578,17 @@ section[data-testid="stSidebar"] h3 {
 /* ==================== MISC ==================== */
 #MainMenu, footer, header { visibility: hidden !important; }
 .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #4F46E5; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #6366F1; }
 
-/* Plotly transparent */
-.js-plotly-plot .plotly .bg { fill: transparent !important; }
-
-/* Streamlit text colors on dark */
-.stMarkdown, .stMarkdown p, .stMarkdown span {
-    color: #E2E8F0 !important;
-}
-.stMarkdown strong {
-    color: #F8FAFC !important;
-}
+.stMarkdown p, .stMarkdown span { color: #374151 !important; }
+.stMarkdown strong { color: #111827 !important; }
 .stAlert {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    color: #E2E8F0 !important;
+    background: white !important;
+    border: 1px solid #E5E7EB !important;
+    color: #374151 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -720,7 +701,7 @@ def calc(df):
 def view_header():
     st.markdown(f"""
     <div class="main-header">
-        <h1>⚡ Sales Transfer Dashboard</h1>
+        <h1>📊 Sales Transfer Dashboard</h1>
         <p>Real-time monitoring — only completed (done) transfers are counted</p>
         <div class="h-badges">
             <div class="h-badge"><div class="live-dot"></div> Live</div>
@@ -740,14 +721,14 @@ def view_status(k):
     st.markdown('<div class="sec-title"><div class="sec-dot"></div> Status Overview</div>', unsafe_allow_html=True)
     st.markdown(f"""
     <div class="g-card">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
             <div class="card-ico">📋</div>
             <div>
-                <strong style="font-size:17px;color:#F8FAFC;">Transfer Status Breakdown</strong>
-                <p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Only "done" entries count as completed transfers</p>
+                <strong style="font-size:16px;color:#111827;">Transfer Status Breakdown</strong>
+                <p style="margin:2px 0 0 0;font-size:12px;color:#6B7280;">Only "done" entries count as completed transfers</p>
             </div>
         </div>
-        <div class="s-grid" style="position:relative;z-index:2;">
+        <div class="s-grid">
             <div class="s-card s-done">
                 <div class="s-ico">✅</div>
                 <div class="s-val">{k['done']}</div>
@@ -771,7 +752,7 @@ def view_performers(k):
     c1,c2 = st.columns(2)
     with c1:
         st.markdown('<div class="g-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">🏆</div><div><strong style="font-size:17px;color:#F8FAFC;">Top Performers</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Highest completed transfers</p></div></div>', unsafe_allow_html=True)
+        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="card-ico">🏆</div><div><strong style="font-size:16px;color:#111827;">Top Performers</strong><p style="margin:2px 0 0 0;font-size:12px;color:#6B7280;">Highest completed transfers</p></div></div>', unsafe_allow_html=True)
         t1,t2,t3 = st.tabs(["Today","This Week","This Month"])
         for tab,key in [(t1,"ac_t"),(t2,"ac_w"),(t3,"ac_m")]:
             with tab:
@@ -779,19 +760,19 @@ def view_performers(k):
                 if not counts.empty:
                     ag = counts.index[0]; cnt = int(counts.iloc[0])
                     st.markdown(f"""
-                    <div class="top-hero" style="position:relative;z-index:2;">
+                    <div class="top-hero">
                         <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-                            <div style="width:48px;height:48px;background:linear-gradient(135deg,#F59E0B,#D97706);
-                            border-radius:13px;display:flex;align-items:center;justify-content:center;
-                            font-size:24px;box-shadow:0 6px 16px rgba(245,158,11,0.3);">🥇</div>
+                            <div style="width:46px;height:46px;background:linear-gradient(135deg,#F59E0B,#D97706);
+                            border-radius:12px;display:flex;align-items:center;justify-content:center;
+                            font-size:22px;box-shadow:0 4px 12px rgba(245,158,11,0.25);">🥇</div>
                             <div>
-                                <strong style="font-size:18px;color:#F8FAFC;">{ag}</strong>
-                                <p style="margin:0;font-size:11px;color:#94A3B8;">Top performer</p>
+                                <strong style="font-size:17px;color:#111827;">{ag}</strong>
+                                <p style="margin:0;font-size:11px;color:#6B7280;">Top performer</p>
                             </div>
                         </div>
                         <div style="display:flex;align-items:baseline;gap:6px;">
-                            <span style="font-size:42px;font-weight:900;color:#FBBF24;letter-spacing:-2px;line-height:1;animation:countPop 0.6s ease 0.2s both;">{cnt}</span>
-                            <span style="font-size:13px;color:#94A3B8;">completed transfers</span>
+                            <span style="font-size:40px;font-weight:800;color:#D97706;letter-spacing:-2px;line-height:1;animation:countPop 0.6s ease 0.2s both;">{cnt}</span>
+                            <span style="font-size:13px;color:#6B7280;">completed transfers</span>
                         </div>
                     </div>""", unsafe_allow_html=True)
                 else:
@@ -800,31 +781,31 @@ def view_performers(k):
 
     with c2:
         st.markdown('<div class="g-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:#F8FAFC;">Agent Rankings</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">All-time completed transfers</p></div></div>', unsafe_allow_html=True)
+        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="card-ico">📈</div><div><strong style="font-size:16px;color:#111827;">Agent Rankings</strong><p style="margin:2px 0 0 0;font-size:12px;color:#6B7280;">All-time completed transfers</p></div></div>', unsafe_allow_html=True)
         ac = k.get("ac",pd.Series())
         if not ac.empty:
             low = k.get("low",""); mx = ac.max()
             for i,(ag,cnt) in enumerate(ac.head(10).items(),1):
-                m = {1:"🥇",2:"🥈",3:"🥉"}.get(i,f'<span style="color:#64748B;font-weight:700;">{i}.</span>')
+                m = {1:"🥇",2:"🥈",3:"🥉"}.get(i,f'<span style="color:#9CA3AF;font-weight:700;">{i}.</span>')
                 bw = (cnt/mx*100) if mx>0 else 0
                 is_low = ag==low and len(ac)>1
                 st.markdown(f"""
-                <div class="rank-row {"rank-low" if is_low else ""}" style="animation-delay:{i*0.06}s;position:relative;z-index:2;">
+                <div class="rank-row {"rank-low" if is_low else ""}" style="animation-delay:{i*0.05}s;">
                     <div style="flex:1;">
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span style="font-size:16px;">{m}</span>
-                            <span style="font-weight:700;color:#E2E8F0;font-size:14px;">{ag}</span>
+                            <span style="font-weight:700;color:#111827;font-size:14px;">{ag}</span>
                         </div>
-                        <div class="bar-trk"><div class="bar-fl" style="width:{bw}%;animation-delay:{i*0.06}s;"></div></div>
+                        <div class="bar-trk"><div class="bar-fl" style="width:{bw}%;animation-delay:{i*0.05}s;"></div></div>
                     </div>
-                    <span style="color:#818CF8;font-weight:800;font-size:18px;margin-left:12px;">{int(cnt)}</span>
+                    <span style="color:#6366F1;font-weight:800;font-size:18px;margin-left:12px;">{int(cnt)}</span>
                 </div>""", unsafe_allow_html=True)
             if len(ac)>1:
                 st.markdown(f"""
-                <div class="ins-box ins-danger" style="position:relative;z-index:2;">
-                    <span style="font-size:22px;">📉</span>
-                    <div><strong style="color:#EF4444;font-size:12px;">Needs Support</strong>
-                    <p style="margin:2px 0 0 0;font-size:13px;color:#E2E8F0;">{low} ({int(ac.min())} transfers)</p></div>
+                <div class="ins-box ins-danger">
+                    <span style="font-size:20px;">📉</span>
+                    <div><strong style="color:#DC2626;font-size:12px;">Needs Support</strong>
+                    <p style="margin:2px 0 0 0;font-size:13px;color:#374151;">{low} ({int(ac.min())} transfers)</p></div>
                 </div>""", unsafe_allow_html=True)
         else:
             st.info("No agent data")
@@ -833,36 +814,36 @@ def view_performers(k):
 def view_transfers(k):
     st.markdown('<div class="sec-title"><div class="sec-dot"></div> Transfer Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="g-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">📊</div><div><strong style="font-size:17px;color:#F8FAFC;">Transfer Destinations</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Where completed transfers are directed</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="card-ico">📊</div><div><strong style="font-size:16px;color:#111827;">Transfer Destinations</strong><p style="margin:2px 0 0 0;font-size:12px;color:#6B7280;">Where completed transfers are directed</p></div></div>', unsafe_allow_html=True)
 
     tc = k.get("tc",pd.Series())
     if not tc.empty:
         c1,c2 = st.columns(2)
-        lo = dict(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                  font=dict(family='Inter',color='#94A3B8'), margin=dict(t=40,b=20,l=20,r=20))
+        lo = dict(height=370, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                  font=dict(family='Plus Jakarta Sans',color='#6B7280'), margin=dict(t=40,b=20,l=20,r=20))
         with c1:
             fig = px.pie(values=tc.values,names=tc.index,title="Distribution",
-                color_discrete_sequence=['#4F46E5','#06B6D4','#8B5CF6','#10B981','#F59E0B','#312E81'])
+                color_discrete_sequence=['#6366F1','#0EA5E9','#8B5CF6','#10B981','#F59E0B','#EC4899'])
             fig.update_layout(**lo)
-            fig.update_traces(textposition='inside',textinfo='percent+label',hole=0.45,
-                marker=dict(line=dict(color='#0A0E27',width=2)))
+            fig.update_traces(textposition='inside',textinfo='percent+label',hole=0.42,
+                marker=dict(line=dict(color='white',width=2)))
             st.plotly_chart(fig,use_container_width=True)
         with c2:
             tf = tc.reset_index(); tf.columns = ['Destination','Count']
             tf = tf.sort_values('Count',ascending=True)
             fig = px.bar(tf,y='Destination',x='Count',title="By Destination",orientation='h',
-                color='Count',color_continuous_scale=['rgba(255,255,255,0.05)','#4F46E5'])
+                color='Count',color_continuous_scale=['#E0E7FF','#6366F1'])
             fig.update_layout(**lo,coloraxis_showscale=False)
-            fig.update_traces(marker_line_width=0)
+            fig.update_traces(marker_line_width=0,marker_corner_radius=4)
             st.plotly_chart(fig,use_container_width=True)
 
         st.markdown(f"""
-        <div class="hl-box" style="position:relative;z-index:2;">
+        <div class="hl-box">
             <div class="hl-ico">🎯</div>
             <div>
-                <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;">Most Transferred To</div>
-                <div style="font-size:22px;font-weight:900;color:#F8FAFC;margin-top:3px;">{k['dest']}</div>
-                <div style="font-size:12px;color:#64748B;margin-top:2px;">{k['dest_n']} completed transfers directed here</div>
+                <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.8px;">Most Transferred To</div>
+                <div style="font-size:20px;font-weight:800;color:#1E1B4B;margin-top:2px;">{k['dest']}</div>
+                <div style="font-size:12px;color:#9CA3AF;margin-top:1px;">{k['dest_n']} completed transfers directed here</div>
             </div>
         </div>""", unsafe_allow_html=True)
     else:
@@ -872,7 +853,7 @@ def view_transfers(k):
 def view_agents(k):
     st.markdown('<div class="sec-title"><div class="sec-dot"></div> Agent Details</div>', unsafe_allow_html=True)
     st.markdown('<div class="g-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">👤</div><div><strong style="font-size:17px;color:#F8FAFC;">Agent Performance</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Completed transfers only</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="card-ico">👤</div><div><strong style="font-size:16px;color:#111827;">Agent Performance</strong><p style="margin:2px 0 0 0;font-size:12px;color:#6B7280;">Completed transfers only</p></div></div>', unsafe_allow_html=True)
 
     ac = k.get("ac",pd.Series())
     if not ac.empty:
@@ -893,7 +874,7 @@ def view_agents(k):
 
         if not filt.empty:
             lbl = f" — {sel}" if sel!="All Agents" else ""
-            st.markdown(f'<p style="color:#E2E8F0;font-weight:700;margin-top:20px;margin-bottom:8px;">Recent Completed Transfers{lbl}</p>',unsafe_allow_html=True)
+            st.markdown(f'<p style="color:#111827;font-weight:700;margin-top:18px;margin-bottom:8px;">Recent Completed Transfers{lbl}</p>',unsafe_allow_html=True)
             avail = [c for c in ["Timestamp","Agent Name","Customer Name:","Transfer to:","Status","Electric Bill:","Credit Score:"] if c in filt.columns]
             if avail:
                 recent = filt[avail].sort_values("Timestamp",ascending=False).head(10)
@@ -909,7 +890,7 @@ def view_agents(k):
 def view_trends(k):
     st.markdown('<div class="sec-title"><div class="sec-dot"></div> Trend Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="g-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;z-index:2;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:#F8FAFC;">Time Series</strong><p style="margin:2px 0 0 0;font-size:12px;color:#94A3B8;">Completed transfer trends</p></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="card-ico">📈</div><div><strong style="font-size:16px;color:#111827;">Time Series</strong><p style="margin:2px 0 0 0;font-size:12px;color:#6B7280;">Completed transfer trends</p></div></div>', unsafe_allow_html=True)
 
     dd = k.get("done_df",pd.DataFrame())
     if not dd.empty:
@@ -924,33 +905,33 @@ def view_trends(k):
         monthly = df.groupby('Mo').size().reset_index(name='Transfers')
         monthly['Mo'] = monthly['Mo'].astype(str)
 
-        lo = dict(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                  font=dict(family='Inter',color='#94A3B8'), margin=dict(t=40,b=40,l=40,r=20),
-                  xaxis=dict(gridcolor='rgba(255,255,255,0.04)',zeroline=False),
-                  yaxis=dict(gridcolor='rgba(255,255,255,0.04)',zeroline=False))
+        lo = dict(height=370, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                  font=dict(family='Plus Jakarta Sans',color='#6B7280'), margin=dict(t=40,b=40,l=40,r=20),
+                  xaxis=dict(gridcolor='#F3F4F6',zeroline=False),
+                  yaxis=dict(gridcolor='#F3F4F6',zeroline=False))
 
         t1,t2,t3 = st.tabs(["Daily","Weekly","Monthly"])
         with t1:
             if len(daily)>1:
                 fig = px.area(daily,x='Date',y='Transfers',title="Daily Trend",markers=True)
-                fig.update_traces(line_color='#818CF8',fill='tozeroy',fillcolor='rgba(79,70,229,0.08)',
-                    marker=dict(color='#06B6D4',size=8,line=dict(color='#0A0E27',width=2)))
+                fig.update_traces(line_color='#6366F1',fill='tozeroy',fillcolor='rgba(99,102,241,0.06)',
+                    marker=dict(color='#0EA5E9',size=8,line=dict(color='white',width=2)))
                 fig.update_layout(**lo); st.plotly_chart(fig,use_container_width=True)
             else: st.info("Insufficient data")
         with t2:
             if len(weekly)>1:
                 fig = px.bar(weekly,x='Lbl',y='Transfers',title="Weekly Trend",
-                    color='Transfers',color_continuous_scale=['rgba(255,255,255,0.03)','#4F46E5'])
+                    color='Transfers',color_continuous_scale=['#E0E7FF','#6366F1'])
                 fig.update_layout(**lo,xaxis_tickangle=-45,coloraxis_showscale=False)
-                fig.update_traces(marker_line_width=0)
+                fig.update_traces(marker_line_width=0,marker_corner_radius=4)
                 st.plotly_chart(fig,use_container_width=True)
             else: st.info("Insufficient data")
         with t3:
             if len(monthly)>1:
                 fig = px.bar(monthly,x='Mo',y='Transfers',title="Monthly Trend",
-                    color='Transfers',color_continuous_scale=['rgba(255,255,255,0.03)','#312E81'])
+                    color='Transfers',color_continuous_scale=['#E0E7FF','#4338CA'])
                 fig.update_layout(**lo,xaxis_tickangle=-45,coloraxis_showscale=False)
-                fig.update_traces(marker_line_width=0)
+                fig.update_traces(marker_line_width=0,marker_corner_radius=4)
                 st.plotly_chart(fig,use_container_width=True)
             else: st.info("Insufficient data")
     else:
@@ -969,8 +950,8 @@ def main():
     if df.empty:
         st.markdown("""
         <div class="warn-card">
-            <h3 style="color:#FBBF24;margin-top:0;">⚠️ No data available</h3>
-            <p style="color:#E2E8F0;line-height:1.8;">
+            <h3 style="color:#D97706;margin-top:0;">⚠️ No data available</h3>
+            <p style="color:#374151;line-height:1.8;">
                 <strong>Check:</strong><br>
                 1. Google Sheet shared with service account<br>
                 2. Data exists in "Form Responses 1"<br>
@@ -1003,7 +984,7 @@ def main():
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.markdown(f"""
     <div class="foot-bar">
-        🟢 System Online &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
+        🟢 System Online &nbsp;·&nbsp; Last updated: {now} &nbsp;·&nbsp; Next refresh in 45s
     </div>""", unsafe_allow_html=True)
 
     time.sleep(45)
