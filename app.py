@@ -14,6 +14,18 @@ st.set_page_config(
 )
 
 # ============================================================
+# SESSION STATE INITIALIZATION
+# ============================================================
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+if 'admin_sales_counter' not in st.session_state:
+    st.session_state.admin_sales_counter = {}
+if 'admin_failed_transfers' not in st.session_state:
+    st.session_state.admin_failed_transfers = {}
+if 'admin_mode' not in st.session_state:
+    st.session_state.admin_mode = False
+
+# ============================================================
 # NEURAL NETWORK CANVAS + FULL CSS
 # ============================================================
 st.markdown("""
@@ -744,7 +756,8 @@ def calc(df):
     df = df[df["Timestamp"].notna()].copy()
     if df.empty: return {}
     done = df[df["Status"]=="done"].copy()
-    total = len(df); dn = len(done); pend = total - dn
+    failed = df[df["Status"].isin(["failed", "fail", "rejected", "bad"])].copy()
+    total = len(df); dn = len(done); pend = total - dn - len(failed)
     r = ranges()
     def f(d,k):
         s,e = r[k]; return d[(d["Timestamp"]>=s)&(d["Timestamp"]<e)]
@@ -754,12 +767,17 @@ def calc(df):
     def pc(a,b): return ((a-b)/b*100) if b>0 else 0
     tc = done["Transfer to:"].value_counts() if "Transfer to:" in done.columns else pd.Series()
     ac = done["Agent Name"].value_counts() if "Agent Name" in done.columns else pd.Series()
+    
+    # Failed transfers per agent
+    failed_by_agent = failed["Agent Name"].value_counts() if "Agent Name" in failed.columns else pd.Series()
+    
     return {
-        "total":total,"done":dn,"pend":pend,
+        "total":total,"done":dn,"pend":pend,"failed":len(failed),
         "rate":(dn/total*100) if total>0 else 0,
         "dest":tc.index[0] if not tc.empty else "N/A",
         "dest_n":int(tc.iloc[0]) if not tc.empty else 0,
         "tc":tc,"ac":ac,
+        "failed_by_agent":failed_by_agent,
         "ac_t":td["Agent Name"].value_counts() if "Agent Name" in td.columns else pd.Series(),
         "ac_w":tw["Agent Name"].value_counts() if "Agent Name" in tw.columns else pd.Series(),
         "ac_m":tm["Agent Name"].value_counts() if "Agent Name" in tm.columns else pd.Series(),
@@ -767,14 +785,45 @@ def calc(df):
         "td":len(td),"yd":len(yd),"dp":pc(len(td),len(yd)),
         "tw":len(tw),"lw":len(lw),"wp":pc(len(tw),len(lw)),
         "tm":len(tm),"lm":len(lm),"mp":pc(len(tm),len(lm)),
-        "full":df,"done_df":done,
+        "full":df,"done_df":done,"failed_df":failed,
         "tdf":td,"wdf":tw,"mdf":tm
     }
+
+def get_admin_metrics(k):
+    """Return metrics with admin sales counter (counts in steps of 10)"""
+    admin_metrics = k.copy()
+    
+    # Apply admin sales counter (incrementing in steps of 10)
+    admin_metrics['done'] = (k['done'] // 10) * 10 if k['done'] >= 10 else 0
+    admin_metrics['td'] = (k['td'] // 10) * 10 if k['td'] >= 10 else 0
+    admin_metrics['tw'] = (k['tw'] // 10) * 10 if k['tw'] >= 10 else 0
+    admin_metrics['tm'] = (k['tm'] // 10) * 10 if k['tm'] >= 10 else 0
+    
+    # Recalculate rate based on admin sales
+    if k['total'] > 0:
+        admin_metrics['rate'] = (admin_metrics['done'] / k['total'] * 100)
+    else:
+        admin_metrics['rate'] = 0
+    
+    # Update agent counts with admin scaling
+    admin_ac = k['ac'].copy()
+    for agent in admin_ac.index:
+        admin_ac[agent] = (admin_ac[agent] // 10) * 10
+    admin_metrics['ac'] = admin_ac
+    
+    admin_metrics['ac_t'] = k['ac_t'].apply(lambda x: (x // 10) * 10)
+    admin_metrics['ac_w'] = k['ac_w'].apply(lambda x: (x // 10) * 10)
+    admin_metrics['ac_m'] = k['ac_m'].apply(lambda x: (x // 10) * 10)
+    
+    admin_metrics['dest_n'] = (admin_metrics['dest_n'] // 10) * 10
+    
+    return admin_metrics
 
 # ============================================================
 # VIEWS
 # ============================================================
-def view_header():
+def view_header(admin_mode=False):
+    mode_text = "🔐 Admin Mode" if admin_mode else "👥 Standard View"
     st.markdown(f"""
     <div class="main-header">
         <h1>⚡ Sales Transfer Dashboard</h1>
@@ -783,15 +832,78 @@ def view_header():
             <div class="h-badge"><div class="live-dot"></div> Live</div>
             <div class="h-badge">🔄 Auto-refresh 45s</div>
             <div class="h-badge">📅 {datetime.now().strftime("%b %d, %Y %H:%M")}</div>
+            <div class="h-badge" style="background: linear-gradient(135deg, #4F46E5, #8B5CF6);">{mode_text}</div>
         </div>
     </div>""", unsafe_allow_html=True)
 
-def view_kpis(k):
+def view_kpis(k, admin_mode=False):
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.metric("✅ Completed Transfers", f"{k['done']:,}", f"{k['rate']:.1f}% rate · {k['pend']} pending")
+    with c1: 
+        if admin_mode:
+            st.metric("✅ Completed Transfers (Adjusted)", f"{k['done']:,}", f"{k['rate']:.1f}% rate · {k['pend']} pending")
+        else:
+            st.metric("✅ Completed Transfers", f"{k['done']:,}", f"{k['rate']:.1f}% rate · {k['pend']} pending")
     with c2: st.metric("📅 Today", f"{k['td']:,}", f"{k['dp']:+.1f}% vs yesterday ({k['yd']})")
     with c3: st.metric("📆 This Week", f"{k['tw']:,}", f"{k['wp']:+.1f}% vs last week ({k['lw']})")
     with c4: st.metric("🗓️ This Month", f"{k['tm']:,}", f"{k['mp']:+.1f}% vs last month ({k['lm']})")
+
+def view_failed_transfers(k):
+    st.markdown('<div class="section-title"><div class="section-dot"></div> ❌ Failed Transfer Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">⚠️</div><div><strong style="font-size:17px;color:white !important;">Failed Transfers by Agent</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Transfers marked as failed/rejected</p></div></div>', unsafe_allow_html=True)
+    
+    failed_by_agent = k.get("failed_by_agent", pd.Series())
+    
+    if not failed_by_agent.empty:
+        c1, c2 = st.columns(2)
+        
+        with c1:
+            fig = px.pie(values=failed_by_agent.values, names=failed_by_agent.index, title="Failed Transfers Distribution",
+                color_discrete_sequence=['#EF4444', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'])
+            fig.update_layout(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                             font=dict(family='Inter',color='white'), margin=dict(t=40,b=20,l=20,r=20))
+            fig.update_traces(textposition='inside', textinfo='percent+label', hole=0.4,
+                             marker=dict(line=dict(color='#0A0E27',width=2)))
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with c2:
+            failed_df = failed_by_agent.reset_index()
+            failed_df.columns = ['Agent', 'Failed Count']
+            failed_df = failed_df.sort_values('Failed Count', ascending=True)
+            fig = px.bar(failed_df, y='Agent', x='Failed Count', title="Failed Transfers by Agent", orientation='h',
+                        color='Failed Count', color_continuous_scale=['rgba(239,68,68,0.3)', '#EF4444'])
+            fig.update_layout(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                             font=dict(family='Inter',color='white'), margin=dict(t=40,b=20,l=20,r=20),
+                             coloraxis_showscale=False)
+            fig.update_traces(marker_line_width=0)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Display failed transfers table
+        st.markdown(f"""
+        <div class="highlight-box" style="margin-top:20px;background:linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.03));">
+            <div class="hl-ico" style="background:linear-gradient(135deg, #EF4444, #DC2626);">❌</div>
+            <div>
+                <div style="font-size:11px;font-weight:700;color:white !important;text-transform:uppercase;letter-spacing:0.8px;">Total Failed Transfers</div>
+                <div style="font-size:22px;font-weight:900;color:white !important;margin-top:3px;">{k['failed']:,}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.85) !important;margin-top:2px;">Need attention</div>
+            </div>
+        </div>""", unsafe_allow_html=True)
+        
+        # Detailed table
+        st.markdown('<p style="color:white !important;font-weight:700;margin-top:20px;margin-bottom:8px;">Failed Transfers Details</p>', unsafe_allow_html=True)
+        failed_df = k.get("failed_df", pd.DataFrame())
+        if not failed_df.empty:
+            avail = [c for c in ["Timestamp","Agent Name","Customer Name:","Transfer to:","Status","FeedBack"] if c in failed_df.columns]
+            if avail:
+                recent_failed = failed_df[avail].sort_values("Timestamp", ascending=False).head(20)
+                if "Status" in recent_failed.columns:
+                    recent_failed["Status"] = recent_failed["Status"].apply(lambda x: f"❌ {str(x).title()}")
+                st.dataframe(recent_failed, use_container_width=True, hide_index=True,
+                            column_config={"Timestamp": st.column_config.DatetimeColumn("Timestamp", format="MM/DD/YYYY HH:mm")})
+    else:
+        st.info("No failed transfers recorded")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def view_status(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Status Overview</div>', unsafe_allow_html=True)
@@ -815,15 +927,15 @@ def view_status(k):
                 <div class="s-val">{k['pend']}</div>
                 <div class="s-lbl">Pending / Other</div>
             </div>
-            <div class="s-card s-rate">
-                <div class="s-ico">📊</div>
-                <div class="s-val">{k['rate']:.1f}%</div>
-                <div class="s-lbl">Completion Rate</div>
+            <div class="s-card" style="background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.05)); border-color: rgba(239,68,68,0.2);">
+                <div class="s-ico">❌</div>
+                <div class="s-val" style="color:#EF4444 !important;">{k['failed']}</div>
+                <div class="s-lbl">Failed / Rejected</div>
             </div>
         </div>
     </div>""", unsafe_allow_html=True)
 
-def view_performers(k):
+def view_performers(k, admin_mode=False):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Performance Analysis</div>', unsafe_allow_html=True)
     c1,c2 = st.columns(2)
 
@@ -1017,10 +1129,86 @@ def view_trends(k):
     st.markdown('</div>',unsafe_allow_html=True)
 
 # ============================================================
+# ADMIN LOGIN
+# ============================================================
+def admin_login():
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🔐 Admin Access")
+    
+    password = st.sidebar.text_input("Enter Admin Password", type="password", key="admin_password")
+    
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("🔓 Login", use_container_width=True):
+            if password == "admin123":
+                st.session_state.authenticated = True
+                st.session_state.admin_mode = True
+                st.rerun()
+            else:
+                st.sidebar.error("Invalid password!")
+    with col2:
+        if st.button("👥 Standard View", use_container_width=True):
+            st.session_state.authenticated = True
+            st.session_state.admin_mode = False
+            st.rerun()
+    
+    if st.session_state.authenticated and st.session_state.admin_mode:
+        st.sidebar.success("✅ Admin Mode Active")
+        st.sidebar.info("📊 Sales counts are displayed in steps of 10")
+        
+        if st.sidebar.button("🚪 Logout", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.admin_mode = False
+            st.rerun()
+    
+    elif st.session_state.authenticated and not st.session_state.admin_mode:
+        st.sidebar.success("👤 Standard User Mode")
+        
+        if st.sidebar.button("🔑 Switch to Admin", use_container_width=True):
+            st.session_state.authenticated = False
+            st.rerun()
+
+# ============================================================
 # MAIN
 # ============================================================
 def main():
-    view_header()
+    # Show login in sidebar first
+    if not st.session_state.authenticated:
+        view_header(admin_mode=False)
+        admin_login()
+        
+        st.markdown("""
+        <div class="glass-card" style="text-align:center;margin-top:50px;">
+            <div class="card-ico" style="margin:0 auto 16px auto;">🔐</div>
+            <h3 style="color:white !important;">Welcome to Sales Transfer Dashboard</h3>
+            <p style="color:rgba(255,255,255,0.85) !important;">Please log in using the sidebar to access the dashboard.</p>
+            <p style="color:rgba(255,255,255,0.7) !important;margin-top:12px;font-size:12px;">
+                <strong>Admin Password:</strong> admin123<br>
+                Or click "Standard View" for regular access
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Main dashboard content
+    admin_mode = st.session_state.admin_mode
+    
+    view_header(admin_mode=admin_mode)
+    
+    if admin_mode:
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("### 🔐 Admin Panel Active")
+        st.sidebar.info(f"""
+        **Admin Features:**\n
+        • Sales count displayed in steps of 10\n
+        • Failed transfer tracking per agent\n
+        • Complete audit trail visible\n
+        • All original data accessible
+        """)
+        if st.sidebar.button("🚪 Logout", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.admin_mode = False
+            st.rerun()
 
     with st.spinner("Connecting to Google Sheets..."):
         df = fetch_data()
@@ -1047,22 +1235,37 @@ def main():
         st.warning("No valid records found. Waiting...")
         time.sleep(45); st.rerun()
 
-    st.markdown(f"""
-    <div class="success-banner">
-        ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k['done']} completed</strong> transfers counted · {k['pend']} pending
-    </div>""", unsafe_allow_html=True)
+    # Apply admin metrics if in admin mode
+    if admin_mode:
+        display_k = get_admin_metrics(k)
+        st.markdown(f"""
+        <div class="success-banner">
+            🔐 <strong>ADMIN MODE</strong> — Sales displayed in increments of 10 · {len(df)} total records · {k['done']} actual completions
+        </div>""", unsafe_allow_html=True)
+    else:
+        display_k = k
+        st.markdown(f"""
+        <div class="success-banner">
+            ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k['done']} completed</strong> transfers counted · {k['pend']} pending
+        </div>""", unsafe_allow_html=True)
 
-    view_kpis(k)
-    view_status(k)
-    view_performers(k)
-    view_transfers(k)
-    view_agents(k)
-    view_trends(k)
+    view_kpis(display_k, admin_mode=admin_mode)
+    view_status(display_k)
+    view_performers(display_k, admin_mode=admin_mode)
+    
+    # Show failed transfers only in admin mode
+    if admin_mode:
+        view_failed_transfers(k)  # Use original k for failed data (not scaled)
+    
+    view_transfers(display_k)
+    view_agents(display_k)
+    view_trends(display_k)
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    mode_text = "🔐 Admin Mode - Sales x10" if admin_mode else "👥 Standard Mode"
     st.markdown(f"""
     <div class="footer-bar">
-        🟢 System Online &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
+        🟢 System Online &nbsp;&nbsp;·&nbsp;&nbsp; {mode_text} &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
     </div>""", unsafe_allow_html=True)
 
     time.sleep(45)
