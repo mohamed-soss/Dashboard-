@@ -5,33 +5,18 @@ from datetime import datetime, timedelta
 import time
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-
 st.set_page_config(
     page_title="Sales Transfer Dashboard",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# ============================================================
-# SESSION STATE INITIALIZATION
-# ============================================================
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
-if 'admin_sales_counter' not in st.session_state:
-    st.session_state.admin_sales_counter = {}
-if 'admin_failed_transfers' not in st.session_state:
-    st.session_state.admin_failed_transfers = {}
-if 'admin_mode' not in st.session_state:
-    st.session_state.admin_mode = False
-
 # ============================================================
 # NEURAL NETWORK CANVAS + FULL CSS
 # ============================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 :root {
     --primary: #4F46E5;
     --primary-light: #818CF8;
@@ -51,13 +36,10 @@ st.markdown("""
     --danger: #EF4444;
     --glow: rgba(79,70,229,0.4);
 }
-
 * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #FFFFFF !important; }
-
 .stApp {
     background: var(--bg) !important;
 }
-
 /* Neural canvas behind everything */
 #neural-canvas {
     position: fixed;
@@ -66,13 +48,11 @@ st.markdown("""
     z-index: 0;
     pointer-events: none;
 }
-
 /* Make sure Streamlit content is above canvas */
 .stApp > div, .stApp > header, .main, .block-container {
     position: relative;
     z-index: 1;
 }
-
 /* ==================== ANIMATIONS ==================== */
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(30px); }
@@ -130,7 +110,6 @@ st.markdown("""
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
 }
-
 /* ==================== HEADER ==================== */
 .main-header {
     background: linear-gradient(135deg, #1E1B4B 0%, #312E81 30%, #4338CA 60%, #0891B2 100%);
@@ -199,7 +178,6 @@ st.markdown("""
     animation: pulse 2s ease infinite;
     box-shadow: 0 0 10px rgba(52,211,153,0.6);
 }
-
 /* ==================== METRIC CARDS ==================== */
 div[data-testid="stMetric"] {
     background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
@@ -216,7 +194,6 @@ div[data-testid="stMetric"]:nth-child(1) { animation-delay: 0.1s; }
 div[data-testid="stMetric"]:nth-child(2) { animation-delay: 0.2s; }
 div[data-testid="stMetric"]:nth-child(3) { animation-delay: 0.3s; }
 div[data-testid="stMetric"]:nth-child(4) { animation-delay: 0.4s; }
-
 div[data-testid="stMetric"]::before {
     content: '';
     position: absolute;
@@ -228,14 +205,12 @@ div[data-testid="stMetric"]::before {
     transform-origin: left;
 }
 div[data-testid="stMetric"]:hover::before { transform: scaleX(1); }
-
 div[data-testid="stMetric"]:hover {
     transform: translateY(-6px);
     box-shadow: 0 20px 50px rgba(79,70,229,0.2), 0 0 30px rgba(79,70,229,0.1);
     border-color: rgba(129,140,248,0.3);
     background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 }
-
 div[data-testid="stMetric"] label {
     color: white !important;
     font-size: 11px !important;
@@ -255,7 +230,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     font-size: 12px !important;
     font-weight: 500 !important;
 }
-
 /* ==================== SECTION HEADERS ==================== */
 .section-title {
     color: white;
@@ -275,7 +249,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     box-shadow: 0 0 12px var(--glow);
     animation: pulse 3s ease infinite;
 }
-
 /* ==================== GLASS CARDS ==================== */
 .glass-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
@@ -307,7 +280,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 .glass-card p, .glass-card span {
     color: rgba(255,255,255,0.85) !important;
 }
-
 /* Card icon */
 .card-ico {
     width: 44px; height: 44px;
@@ -323,7 +295,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     transform: rotate(-5deg) scale(1.1);
     box-shadow: 0 12px 28px rgba(79,70,229,0.4);
 }
-
 /* ==================== STATUS GRID ==================== */
 .status-grid {
     display: grid;
@@ -351,7 +322,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     transition: opacity 0.4s;
 }
 .s-card:hover::after { opacity: 1; }
-
 .s-done {
     background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05));
     border: 1px solid rgba(16,185,129,0.2);
@@ -380,7 +350,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 .s-done .s-lbl { color: white !important; }
 .s-pending .s-lbl { color: white !important; }
 .s-rate .s-lbl { color: white !important; }
-
 /* ==================== TOP PERFORMER ==================== */
 .top-hero {
     background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
@@ -395,7 +364,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     transform: translateY(-3px);
     box-shadow: 0 12px 32px rgba(245,158,11,0.12);
 }
-
 /* ==================== RANKING ==================== */
 .rank-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -432,7 +400,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: linear-gradient(90deg, var(--primary), var(--accent));
     animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) forwards;
 }
-
 /* ==================== HIGHLIGHT BOX ==================== */
 .highlight-box {
     margin-top: 18px;
@@ -458,7 +425,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     box-shadow: 0 8px 20px rgba(79,70,229,0.3);
     flex-shrink: 0;
 }
-
 /* ==================== INSIGHT BOX ==================== */
 .insight-box {
     margin-top: 14px;
@@ -477,7 +443,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: rgba(16,185,129,0.06);
     border: 1px solid rgba(16,185,129,0.12);
 }
-
 /* ==================== TABS ==================== */
 .stTabs [data-baseweb="tab-list"] {
     gap: 4px;
@@ -506,7 +471,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     color: white !important;
     background: rgba(255,255,255,0.04);
 }
-
 /* ==================== DATAFRAME ==================== */
 .stDataFrame {
     border-radius: 14px !important;
@@ -520,7 +484,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     font-weight: 700 !important;
 }
 .stDataFrame td { color: white !important; }
-
 /* ==================== SELECTBOX ==================== */
 .stSelectbox label { color: white !important; }
 .stSelectbox > div > div {
@@ -529,7 +492,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: rgba(255,255,255,0.04) !important;
     color: white !important;
 }
-
 /* ==================== SUCCESS BANNER ==================== */
 .success-banner {
     background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
@@ -542,7 +504,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     color: white !important;
     font-size: 14px; font-weight: 500;
 }
-
 /* ==================== WARNING ==================== */
 .warn-card {
     background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
@@ -553,7 +514,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     animation: fadeUp 0.5s ease forwards;
     color: white !important;
 }
-
 /* ==================== FOOTER ==================== */
 .footer-bar {
     margin-top: 36px;
@@ -567,7 +527,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     font-size: 13px;
     animation: fadeUp 0.5s ease 0.8s both;
 }
-
 /* ==================== SIDEBAR ==================== */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0F0D2E 0%, #0A0E27 100%) !important;
@@ -581,7 +540,6 @@ section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 {
     color: white !important;
 }
-
 /* ==================== MISC ==================== */
 #MainMenu, footer, header { visibility: hidden !important; }
 .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
@@ -589,16 +547,13 @@ section[data-testid="stSidebar"] h3 {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
-
 /* Plotly dark fix */
 .js-plotly-plot .plotly .bg { fill: transparent !important; }
-
 /* ==================== GLOBAL WHITE TEXT OVERRIDE ==================== */
 p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, small {
     color: white !important;
 }
 </style>
-
 <!-- NEURAL NETWORK CANVAS -->
 <canvas id="neural-canvas"></canvas>
 <script>
@@ -606,7 +561,6 @@ p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, sm
     const canvas = document.getElementById('neural-canvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-
     let W, H;
     function resize() {
         W = canvas.width = window.innerWidth;
@@ -614,11 +568,9 @@ p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, sm
     }
     resize();
     window.addEventListener('resize', resize);
-
     const NUM = 80;
     const MAX_DIST = 150;
     const dots = [];
-
     for (let i = 0; i < NUM; i++) {
         dots.push({
             x: Math.random() * W,
@@ -628,10 +580,8 @@ p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, sm
             r: Math.random() * 2 + 1
         });
     }
-
     function draw() {
         ctx.clearRect(0, 0, W, H);
-
         // Draw connections
         for (let i = 0; i < NUM; i++) {
             for (let j = i + 1; j < NUM; j++) {
@@ -649,7 +599,6 @@ p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, sm
                 }
             }
         }
-
         // Draw dots
         for (let i = 0; i < NUM; i++) {
             const d = dots[i];
@@ -666,21 +615,18 @@ p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, sm
             ctx.fillStyle = `rgba(165,180,252,${0.6 + Math.random() * 0.4})`;
             ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
             ctx.fill();
-
             // Move
             d.x += d.vx;
             d.y += d.vy;
             if (d.x < 0 || d.x > W) d.vx *= -1;
             if (d.y < 0 || d.y > H) d.vy *= -1;
         }
-
         requestAnimationFrame(draw);
     }
     draw();
 })();
 </script>
 """, unsafe_allow_html=True)
-
 # ============================================================
 # GOOGLE SHEETS
 # ============================================================
@@ -702,7 +648,6 @@ def get_service():
     except Exception as e:
         st.error(f"Connection error: {e}")
         return None
-
 @st.cache_data(ttl=30)
 def fetch_data():
     try:
@@ -727,7 +672,6 @@ def fetch_data():
     except Exception as e:
         st.error(f"Error: {e}")
         return pd.DataFrame()
-
 # ============================================================
 # HELPERS
 # ============================================================
@@ -750,14 +694,12 @@ def ranges():
         "month":(ms, datetime(n.year+1,1,1) if n.month==12 else datetime(n.year,n.month+1,1)),
         "lmonth":(lms, lme),
     }
-
 def calc(df):
     if df.empty: return {}
     df = df[df["Timestamp"].notna()].copy()
     if df.empty: return {}
     done = df[df["Status"]=="done"].copy()
-    failed = df[df["Status"].isin(["failed", "fail", "rejected", "bad"])].copy()
-    total = len(df); dn = len(done); pend = total - dn - len(failed)
+    total = len(df); dn = len(done); pend = total - dn
     r = ranges()
     def f(d,k):
         s,e = r[k]; return d[(d["Timestamp"]>=s)&(d["Timestamp"]<e)]
@@ -767,17 +709,12 @@ def calc(df):
     def pc(a,b): return ((a-b)/b*100) if b>0 else 0
     tc = done["Transfer to:"].value_counts() if "Transfer to:" in done.columns else pd.Series()
     ac = done["Agent Name"].value_counts() if "Agent Name" in done.columns else pd.Series()
-    
-    # Failed transfers per agent
-    failed_by_agent = failed["Agent Name"].value_counts() if "Agent Name" in failed.columns else pd.Series()
-    
     return {
-        "total":total,"done":dn,"pend":pend,"failed":len(failed),
+        "total":total,"done":dn,"pend":pend,
         "rate":(dn/total*100) if total>0 else 0,
         "dest":tc.index[0] if not tc.empty else "N/A",
         "dest_n":int(tc.iloc[0]) if not tc.empty else 0,
         "tc":tc,"ac":ac,
-        "failed_by_agent":failed_by_agent,
         "ac_t":td["Agent Name"].value_counts() if "Agent Name" in td.columns else pd.Series(),
         "ac_w":tw["Agent Name"].value_counts() if "Agent Name" in tw.columns else pd.Series(),
         "ac_m":tm["Agent Name"].value_counts() if "Agent Name" in tm.columns else pd.Series(),
@@ -785,45 +722,13 @@ def calc(df):
         "td":len(td),"yd":len(yd),"dp":pc(len(td),len(yd)),
         "tw":len(tw),"lw":len(lw),"wp":pc(len(tw),len(lw)),
         "tm":len(tm),"lm":len(lm),"mp":pc(len(tm),len(lm)),
-        "full":df,"done_df":done,"failed_df":failed,
+        "full":df,"done_df":done,
         "tdf":td,"wdf":tw,"mdf":tm
     }
-
-def get_admin_metrics(k):
-    """Return metrics with admin sales counter (counts in steps of 10)"""
-    admin_metrics = k.copy()
-    
-    # Apply admin sales counter (incrementing in steps of 10)
-    admin_metrics['done'] = (k['done'] // 10) * 10 if k['done'] >= 10 else 0
-    admin_metrics['td'] = (k['td'] // 10) * 10 if k['td'] >= 10 else 0
-    admin_metrics['tw'] = (k['tw'] // 10) * 10 if k['tw'] >= 10 else 0
-    admin_metrics['tm'] = (k['tm'] // 10) * 10 if k['tm'] >= 10 else 0
-    
-    # Recalculate rate based on admin sales
-    if k['total'] > 0:
-        admin_metrics['rate'] = (admin_metrics['done'] / k['total'] * 100)
-    else:
-        admin_metrics['rate'] = 0
-    
-    # Update agent counts with admin scaling
-    admin_ac = k['ac'].copy()
-    for agent in admin_ac.index:
-        admin_ac[agent] = (admin_ac[agent] // 10) * 10
-    admin_metrics['ac'] = admin_ac
-    
-    admin_metrics['ac_t'] = k['ac_t'].apply(lambda x: (x // 10) * 10)
-    admin_metrics['ac_w'] = k['ac_w'].apply(lambda x: (x // 10) * 10)
-    admin_metrics['ac_m'] = k['ac_m'].apply(lambda x: (x // 10) * 10)
-    
-    admin_metrics['dest_n'] = (admin_metrics['dest_n'] // 10) * 10
-    
-    return admin_metrics
-
 # ============================================================
 # VIEWS
 # ============================================================
-def view_header(admin_mode=False):
-    mode_text = "🔐 Admin Mode" if admin_mode else "👥 Standard View"
+def view_header():
     st.markdown(f"""
     <div class="main-header">
         <h1>⚡ Sales Transfer Dashboard</h1>
@@ -832,79 +737,14 @@ def view_header(admin_mode=False):
             <div class="h-badge"><div class="live-dot"></div> Live</div>
             <div class="h-badge">🔄 Auto-refresh 45s</div>
             <div class="h-badge">📅 {datetime.now().strftime("%b %d, %Y %H:%M")}</div>
-            <div class="h-badge" style="background: linear-gradient(135deg, #4F46E5, #8B5CF6);">{mode_text}</div>
         </div>
     </div>""", unsafe_allow_html=True)
-
-def view_kpis(k, admin_mode=False):
+def view_kpis(k):
     c1,c2,c3,c4 = st.columns(4)
-    with c1: 
-        if admin_mode:
-            st.metric("✅ Completed Transfers (Adjusted)", f"{k['done']:,}", f"{k['rate']:.1f}% rate · {k['pend']} pending")
-        else:
-            st.metric("✅ Completed Transfers", f"{k['done']:,}", f"{k['rate']:.1f}% rate · {k['pend']} pending")
+    with c1: st.metric("✅ Completed Transfers", f"{k['done']:,}", f"{k['rate']:.1f}% rate · {k['pend']} pending")
     with c2: st.metric("📅 Today", f"{k['td']:,}", f"{k['dp']:+.1f}% vs yesterday ({k['yd']})")
     with c3: st.metric("📆 This Week", f"{k['tw']:,}", f"{k['wp']:+.1f}% vs last week ({k['lw']})")
     with c4: st.metric("🗓️ This Month", f"{k['tm']:,}", f"{k['mp']:+.1f}% vs last month ({k['lm']})")
-
-def view_failed_transfers(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> ❌ Failed Transfer Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">⚠️</div><div><strong style="font-size:17px;color:white !important;">Failed Transfers by Agent</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Transfers marked as failed/rejected</p></div></div>', unsafe_allow_html=True)
-    
-    failed_by_agent = k.get("failed_by_agent", pd.Series())
-    
-    if not failed_by_agent.empty:
-        c1, c2 = st.columns(2)
-        
-        with c1:
-            fig = px.pie(values=failed_by_agent.values, names=failed_by_agent.index, title="Failed Transfers Distribution",
-                color_discrete_sequence=['#EF4444', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'])
-            fig.update_layout(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                             font=dict(family='Inter',color='white'), margin=dict(t=40,b=20,l=20,r=20))
-            fig.update_traces(textposition='inside', textinfo='percent+label', hole=0.4,
-                             marker=dict(line=dict(color='#0A0E27',width=2)))
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with c2:
-            failed_df = failed_by_agent.reset_index()
-            failed_df.columns = ['Agent', 'Failed Count']
-            failed_df = failed_df.sort_values('Failed Count', ascending=True)
-            fig = px.bar(failed_df, y='Agent', x='Failed Count', title="Failed Transfers by Agent", orientation='h',
-                        color='Failed Count', color_continuous_scale=['rgba(239,68,68,0.3)', '#EF4444'])
-            fig.update_layout(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                             font=dict(family='Inter',color='white'), margin=dict(t=40,b=20,l=20,r=20),
-                             coloraxis_showscale=False)
-            fig.update_traces(marker_line_width=0)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Display failed transfers table
-        st.markdown(f"""
-        <div class="highlight-box" style="margin-top:20px;background:linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.03));">
-            <div class="hl-ico" style="background:linear-gradient(135deg, #EF4444, #DC2626);">❌</div>
-            <div>
-                <div style="font-size:11px;font-weight:700;color:white !important;text-transform:uppercase;letter-spacing:0.8px;">Total Failed Transfers</div>
-                <div style="font-size:22px;font-weight:900;color:white !important;margin-top:3px;">{k['failed']:,}</div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.85) !important;margin-top:2px;">Need attention</div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-        
-        # Detailed table
-        st.markdown('<p style="color:white !important;font-weight:700;margin-top:20px;margin-bottom:8px;">Failed Transfers Details</p>', unsafe_allow_html=True)
-        failed_df = k.get("failed_df", pd.DataFrame())
-        if not failed_df.empty:
-            avail = [c for c in ["Timestamp","Agent Name","Customer Name:","Transfer to:","Status","FeedBack"] if c in failed_df.columns]
-            if avail:
-                recent_failed = failed_df[avail].sort_values("Timestamp", ascending=False).head(20)
-                if "Status" in recent_failed.columns:
-                    recent_failed["Status"] = recent_failed["Status"].apply(lambda x: f"❌ {str(x).title()}")
-                st.dataframe(recent_failed, use_container_width=True, hide_index=True,
-                            column_config={"Timestamp": st.column_config.DatetimeColumn("Timestamp", format="MM/DD/YYYY HH:mm")})
-    else:
-        st.info("No failed transfers recorded")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
 def view_status(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Status Overview</div>', unsafe_allow_html=True)
     st.markdown(f"""
@@ -927,18 +767,16 @@ def view_status(k):
                 <div class="s-val">{k['pend']}</div>
                 <div class="s-lbl">Pending / Other</div>
             </div>
-            <div class="s-card" style="background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.05)); border-color: rgba(239,68,68,0.2);">
-                <div class="s-ico">❌</div>
-                <div class="s-val" style="color:#EF4444 !important;">{k['failed']}</div>
-                <div class="s-lbl">Failed / Rejected</div>
+            <div class="s-card s-rate">
+                <div class="s-ico">📊</div>
+                <div class="s-val">{k['rate']:.1f}%</div>
+                <div class="s-lbl">Completion Rate</div>
             </div>
         </div>
     </div>""", unsafe_allow_html=True)
-
-def view_performers(k, admin_mode=False):
+def view_performers(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Performance Analysis</div>', unsafe_allow_html=True)
     c1,c2 = st.columns(2)
-
     with c1:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">🏆</div><div><strong style="font-size:17px;color:white !important;">Top Performers</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Highest completed transfers</p></div></div>', unsafe_allow_html=True)
@@ -967,7 +805,6 @@ def view_performers(k, admin_mode=False):
                 else:
                     st.info("No completed transfers yet")
         st.markdown('</div>', unsafe_allow_html=True)
-
     with c2:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:white !important;">Agent Rankings</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">All-time completed transfers</p></div></div>', unsafe_allow_html=True)
@@ -999,12 +836,10 @@ def view_performers(k, admin_mode=False):
         else:
             st.info("No agent data")
         st.markdown('</div>', unsafe_allow_html=True)
-
 def view_transfers(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Transfer Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📊</div><div><strong style="font-size:17px;color:white !important;">Transfer Destinations</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Where completed transfers are directed</p></div></div>', unsafe_allow_html=True)
-
     tc = k.get("tc",pd.Series())
     if not tc.empty:
         c1,c2 = st.columns(2)
@@ -1025,7 +860,6 @@ def view_transfers(k):
             fig.update_layout(**lo,coloraxis_showscale=False)
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig,use_container_width=True)
-
         st.markdown(f"""
         <div class="highlight-box">
             <div class="hl-ico">🎯</div>
@@ -1038,30 +872,25 @@ def view_transfers(k):
     else:
         st.info("No completed transfer data")
     st.markdown('</div>', unsafe_allow_html=True)
-
 def view_agents(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Agent Details</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">👤</div><div><strong style="font-size:17px;color:white !important;">Agent Performance</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Completed transfers only</p></div></div>', unsafe_allow_html=True)
-
     ac = k.get("ac",pd.Series())
     if not ac.empty:
         names = sorted(ac.index.tolist())
         sel = st.selectbox("Select Agent:",["All Agents"]+names,key="asel")
         dd = k.get("done_df",pd.DataFrame())
         filt = dd if sel=="All Agents" else dd[dd["Agent Name"]==sel]
-
         tdf,wdf,mdf = k["tdf"],k["wdf"],k["mdf"]
         if sel!="All Agents":
             t=len(tdf[tdf["Agent Name"]==sel]); w=len(wdf[wdf["Agent Name"]==sel]); m=len(mdf[mdf["Agent Name"]==sel])
         else: t,w,m = k["td"],k["tw"],k["tm"]
-
         mc1,mc2,mc3,mc4 = st.columns(4)
         with mc1: st.metric("🎯 Total Done",len(filt))
         with mc2: st.metric("📅 Today",t)
         with mc3: st.metric("📆 This Week",w)
         with mc4: st.metric("🗓️ This Month",m)
-
         if not filt.empty:
             lbl = f" — {sel}" if sel!="All Agents" else ""
             st.markdown(f'<p style="color:white !important;font-weight:700;margin-top:20px;margin-bottom:8px;">Recent Completed Transfers{lbl}</p>',unsafe_allow_html=True)
@@ -1076,12 +905,10 @@ def view_agents(k):
     else:
         st.info("No agent data")
     st.markdown('</div>',unsafe_allow_html=True)
-
 def view_trends(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Trend Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:white !important;">Time Series</strong><p style="margin:2px 0 0 0;font-size:12px;color:rgba(255,255,255,0.85) !important;">Completed transfer trends</p></div></div>', unsafe_allow_html=True)
-
     dd = k.get("done_df",pd.DataFrame())
     if not dd.empty:
         df = dd.copy()
@@ -1094,12 +921,10 @@ def view_trends(k):
         df['Mo'] = df['Timestamp'].dt.to_period('M')
         monthly = df.groupby('Mo').size().reset_index(name='Transfers')
         monthly['Mo'] = monthly['Mo'].astype(str)
-
         lo = dict(height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                   font=dict(family='Inter',color='white'), margin=dict(t=40,b=40,l=40,r=20),
                   xaxis=dict(gridcolor='rgba(255,255,255,0.04)',zeroline=False),
                   yaxis=dict(gridcolor='rgba(255,255,255,0.04)',zeroline=False))
-
         t1,t2,t3 = st.tabs(["Daily","Weekly","Monthly"])
         with t1:
             if len(daily)>1:
@@ -1127,92 +952,13 @@ def view_trends(k):
     else:
         st.info("No completed transfer data")
     st.markdown('</div>',unsafe_allow_html=True)
-
-# ============================================================
-# ADMIN LOGIN
-# ============================================================
-def admin_login():
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🔐 Admin Access")
-    
-    password = st.sidebar.text_input("Enter Admin Password", type="password", key="admin_password")
-    
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        if st.button("🔓 Login", use_container_width=True):
-            if password == "admin123":
-                st.session_state.authenticated = True
-                st.session_state.admin_mode = True
-                st.rerun()
-            else:
-                st.sidebar.error("Invalid password!")
-    with col2:
-        if st.button("👥 Standard View", use_container_width=True):
-            st.session_state.authenticated = True
-            st.session_state.admin_mode = False
-            st.rerun()
-    
-    if st.session_state.authenticated and st.session_state.admin_mode:
-        st.sidebar.success("✅ Admin Mode Active")
-        st.sidebar.info("📊 Sales counts are displayed in steps of 10")
-        
-        if st.sidebar.button("🚪 Logout", use_container_width=True):
-            st.session_state.authenticated = False
-            st.session_state.admin_mode = False
-            st.rerun()
-    
-    elif st.session_state.authenticated and not st.session_state.admin_mode:
-        st.sidebar.success("👤 Standard User Mode")
-        
-        if st.sidebar.button("🔑 Switch to Admin", use_container_width=True):
-            st.session_state.authenticated = False
-            st.rerun()
-
 # ============================================================
 # MAIN
 # ============================================================
 def main():
-    # Show login in sidebar first
-    if not st.session_state.authenticated:
-        view_header(admin_mode=False)
-        admin_login()
-        
-        st.markdown("""
-        <div class="glass-card" style="text-align:center;margin-top:50px;">
-            <div class="card-ico" style="margin:0 auto 16px auto;">🔐</div>
-            <h3 style="color:white !important;">Welcome to Sales Transfer Dashboard</h3>
-            <p style="color:rgba(255,255,255,0.85) !important;">Please log in using the sidebar to access the dashboard.</p>
-            <p style="color:rgba(255,255,255,0.7) !important;margin-top:12px;font-size:12px;">
-                <strong>Admin Password:</strong> admin123<br>
-                Or click "Standard View" for regular access
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        return
-    
-    # Main dashboard content
-    admin_mode = st.session_state.admin_mode
-    
-    view_header(admin_mode=admin_mode)
-    
-    if admin_mode:
-        st.sidebar.markdown("---")
-        st.sidebar.markdown("### 🔐 Admin Panel Active")
-        st.sidebar.info(f"""
-        **Admin Features:**\n
-        • Sales count displayed in steps of 10\n
-        • Failed transfer tracking per agent\n
-        • Complete audit trail visible\n
-        • All original data accessible
-        """)
-        if st.sidebar.button("🚪 Logout", use_container_width=True):
-            st.session_state.authenticated = False
-            st.session_state.admin_mode = False
-            st.rerun()
-
+    view_header()
     with st.spinner("Connecting to Google Sheets..."):
         df = fetch_data()
-
     if df.empty:
         st.markdown("""
         <div class="warn-card">
@@ -1225,51 +971,29 @@ def main():
             </p>
         </div>""", unsafe_allow_html=True)
         time.sleep(45); st.rerun()
-
     if len(df) <= 1:
         st.warning("Sheet has only headers. Waiting for data...")
         time.sleep(45); st.rerun()
-
     k = calc(df)
     if not k:
         st.warning("No valid records found. Waiting...")
         time.sleep(45); st.rerun()
-
-    # Apply admin metrics if in admin mode
-    if admin_mode:
-        display_k = get_admin_metrics(k)
-        st.markdown(f"""
-        <div class="success-banner">
-            🔐 <strong>ADMIN MODE</strong> — Sales displayed in increments of 10 · {len(df)} total records · {k['done']} actual completions
-        </div>""", unsafe_allow_html=True)
-    else:
-        display_k = k
-        st.markdown(f"""
-        <div class="success-banner">
-            ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k['done']} completed</strong> transfers counted · {k['pend']} pending
-        </div>""", unsafe_allow_html=True)
-
-    view_kpis(display_k, admin_mode=admin_mode)
-    view_status(display_k)
-    view_performers(display_k, admin_mode=admin_mode)
-    
-    # Show failed transfers only in admin mode
-    if admin_mode:
-        view_failed_transfers(k)  # Use original k for failed data (not scaled)
-    
-    view_transfers(display_k)
-    view_agents(display_k)
-    view_trends(display_k)
-
+    st.markdown(f"""
+    <div class="success-banner">
+        ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k['done']} completed</strong> transfers counted · {k['pend']} pending
+    </div>""", unsafe_allow_html=True)
+    view_kpis(k)
+    view_status(k)
+    view_performers(k)
+    view_transfers(k)
+    view_agents(k)
+    view_trends(k)
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    mode_text = "🔐 Admin Mode - Sales x10" if admin_mode else "👥 Standard Mode"
     st.markdown(f"""
     <div class="footer-bar">
-        🟢 System Online &nbsp;&nbsp;·&nbsp;&nbsp; {mode_text} &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
+        🟢 System Online &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
     </div>""", unsafe_allow_html=True)
-
     time.sleep(45)
     st.rerun()
-
 if __name__ == "__main__":
     main()
