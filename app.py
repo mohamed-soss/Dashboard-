@@ -5,14 +5,12 @@ from datetime import datetime, timedelta
 import time
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-
 st.set_page_config(
     page_title="Sales Transfer Dashboard",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
-
 # ============================================================
 # NEURAL NETWORK CANVAS + FULL CSS
 # ============================================================
@@ -180,47 +178,6 @@ st.markdown("""
     animation: pulse 2s ease infinite;
     box-shadow: 0 0 10px rgba(52,211,153,0.6);
 }
-/* Mode Switcher Buttons */
-.mode-switcher {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    justify-content: flex-end;
-    animation: fadeDown 0.5s ease forwards;
-}
-.mode-btn {
-    padding: 10px 24px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
-}
-.mode-btn:hover {
-    transform: translateY(-2px);
-    background: rgba(255,255,255,0.1);
-}
-.mode-btn-active {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    border-color: transparent;
-    box-shadow: 0 4px 15px rgba(79,70,229,0.3);
-}
-.login-modal {
-    max-width: 400px;
-    margin: 100px auto;
-    padding: 40px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border2);
-    border-radius: 24px;
-    text-align: center;
-}
-.password-input {
-    margin: 20px 0;
-}
 /* ==================== METRIC CARDS ==================== */
 div[data-testid="stMetric"] {
     background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
@@ -373,10 +330,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
     border: 1px solid rgba(245,158,11,0.2);
 }
-.s-failed {
-    background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.05));
-    border: 1px solid rgba(239,68,68,0.2);
-}
 .s-rate {
     background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(79,70,229,0.05));
     border: 1px solid rgba(79,70,229,0.2);
@@ -389,7 +342,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 }
 .s-done .s-val { color: white !important; }
 .s-pending .s-val { color: white !important; }
-.s-failed .s-val { color: white !important; }
 .s-rate .s-val { color: white !important; }
 .s-lbl {
     font-size: 12px; font-weight: 600;
@@ -397,7 +349,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 }
 .s-done .s-lbl { color: white !important; }
 .s-pending .s-lbl { color: white !important; }
-.s-failed .s-lbl { color: white !important; }
 .s-rate .s-lbl { color: white !important; }
 /* ==================== TOP PERFORMER ==================== */
 .top-hero {
@@ -491,10 +442,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 .insight-success {
     background: rgba(16,185,129,0.06);
     border: 1px solid rgba(16,185,129,0.12);
-}
-.insight-warning {
-    background: rgba(245,158,11,0.06);
-    border: 1px solid rgba(245,158,11,0.12);
 }
 /* ==================== TABS ==================== */
 .stTabs [data-baseweb="tab-list"] {
@@ -606,12 +553,6 @@ section[data-testid="stSidebar"] h3 {
 p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, small {
     color: white !important;
 }
-/* Admin Panel Styles */
-.admin-header {
-    background: linear-gradient(135deg, #1E1B4B 0%, #312E81 30%, #7C3AED 60%, #D946EF 100%);
-    background-size: 300% 300%;
-    animation: gradientShift 12s ease infinite;
-}
 </style>
 <!-- NEURAL NETWORK CANVAS -->
 <canvas id="neural-canvas"></canvas>
@@ -686,7 +627,6 @@ p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, sm
 })();
 </script>
 """, unsafe_allow_html=True)
-
 # ============================================================
 # GOOGLE SHEETS
 # ============================================================
@@ -708,7 +648,6 @@ def get_service():
     except Exception as e:
         st.error(f"Connection error: {e}")
         return None
-
 @st.cache_data(ttl=30)
 def fetch_data():
     try:
@@ -727,39 +666,15 @@ def fetch_data():
             else: df["Timestamp"] = pd.to_datetime(df["Timestamp"],errors='coerce')
         if "Status" in df.columns:
             df["Status"] = df["Status"].astype(str).str.strip().str.lower()
-        # Check for failed status
-        if "Status" in df.columns:
-            df["IsFailed"] = df["Status"].isin(["failed", "reject", "rejected", "fail", "not done"])
-        else:
-            df["IsFailed"] = False
-            
         for c in ["Timestamp","Agent Name","Transfer to:","Customer Name:","Electric Bill:","Credit Score:","Status","FeedBack","H comments"]:
             if c not in df.columns: df[c] = None
         return df
     except Exception as e:
         st.error(f"Error: {e}")
         return pd.DataFrame()
-
 # ============================================================
-# HELPER FUNCTIONS
+# HELPERS
 # ============================================================
-def get_custom_date_range():
-    """Get date range from 10th of current/previous month to 10th of next month"""
-    today = datetime.now()
-    if today.day >= 10:
-        start_date = datetime(today.year, today.month, 10)
-        if today.month == 12:
-            end_date = datetime(today.year + 1, 1, 10)
-        else:
-            end_date = datetime(today.year, today.month + 1, 10)
-    else:
-        if today.month == 1:
-            start_date = datetime(today.year - 1, 12, 10)
-        else:
-            start_date = datetime(today.year, today.month - 1, 10)
-        end_date = datetime(today.year, today.month, 10)
-    return start_date, end_date
-
 def ranges():
     n = datetime.now()
     ts = datetime(n.year,n.month,n.day)
@@ -771,9 +686,6 @@ def ranges():
     ms = datetime(n.year,n.month,1)
     lms = datetime(n.year-1,12,1) if n.month==1 else datetime(n.year,n.month-1,1)
     lme = ms
-    
-    custom_start, custom_end = get_custom_date_range()
-    
     return {
         "today":(ts, ts+timedelta(days=1)),
         "yest":(ys, ys+timedelta(days=1)),
@@ -781,67 +693,24 @@ def ranges():
         "lweek":(lws, lws+timedelta(days=7)),
         "month":(ms, datetime(n.year+1,1,1) if n.month==12 else datetime(n.year,n.month+1,1)),
         "lmonth":(lms, lme),
-        "custom":(custom_start, custom_end)
     }
-
-def calc(df, use_custom_range=False):
+def calc(df):
     if df.empty: return {}
     df = df[df["Timestamp"].notna()].copy()
     if df.empty: return {}
     done = df[df["Status"]=="done"].copy()
-    failed = df[df["IsFailed"] == True].copy()
-    total = len(df)
-    dn = len(done)
-    pend = total - dn - len(failed)
-    failed_count = len(failed)
-    
+    total = len(df); dn = len(done); pend = total - dn
     r = ranges()
-    
     def f(d,k):
-        if k == "custom" and use_custom_range:
-            s,e = r["custom"]
-        else:
-            s,e = r[k]
-        return d[(d["Timestamp"]>=s)&(d["Timestamp"]<e)]
-    
-    td=f(done,"today")
-    yd=f(done,"yest")
-    tw=f(done,"week")
-    lw=f(done,"lweek")
-    tm=f(done,"month")
-    lm=f(done,"lmonth")
-    tc_custom = f(done, "custom") if use_custom_range else pd.DataFrame()
-    
-    # Failed transfers by agent
-    failed_by_agent = failed["Agent Name"].value_counts() if "Agent Name" in failed.columns else pd.Series()
-    failed_today = f(failed, "today")
-    failed_week = f(failed, "week")
-    failed_month = f(failed, "month")
-    failed_custom = f(failed, "custom") if use_custom_range else pd.DataFrame()
-    
+        s,e = r[k]; return d[(d["Timestamp"]>=s)&(d["Timestamp"]<e)]
+    td=f(done,"today"); yd=f(done,"yest")
+    tw=f(done,"week"); lw=f(done,"lweek")
+    tm=f(done,"month"); lm=f(done,"lmonth")
     def pc(a,b): return ((a-b)/b*100) if b>0 else 0
-    
     tc = done["Transfer to:"].value_counts() if "Transfer to:" in done.columns else pd.Series()
     ac = done["Agent Name"].value_counts() if "Agent Name" in done.columns else pd.Series()
-    
-    # Calculate success rates by agent
-    agent_success_rates = {}
-    if "Agent Name" in df.columns:
-        for agent in df["Agent Name"].dropna().unique():
-            agent_total = len(df[df["Agent Name"] == agent])
-            agent_done = len(done[done["Agent Name"] == agent])
-            agent_failed = len(failed[failed["Agent Name"] == agent])
-            agent_success_rates[agent] = {
-                "total": agent_total,
-                "done": agent_done,
-                "failed": agent_failed,
-                "pending": agent_total - agent_done - agent_failed,
-                "success_rate": (agent_done / agent_total * 100) if agent_total > 0 else 0,
-                "fail_rate": (agent_failed / agent_total * 100) if agent_total > 0 else 0
-            }
-    
     return {
-        "total":total,"done":dn,"pend":pend,"failed":failed_count,
+        "total":total,"done":dn,"pend":pend,
         "rate":(dn/total*100) if total>0 else 0,
         "dest":tc.index[0] if not tc.empty else "N/A",
         "dest_n":int(tc.iloc[0]) if not tc.empty else 0,
@@ -849,223 +718,15 @@ def calc(df, use_custom_range=False):
         "ac_t":td["Agent Name"].value_counts() if "Agent Name" in td.columns else pd.Series(),
         "ac_w":tw["Agent Name"].value_counts() if "Agent Name" in tw.columns else pd.Series(),
         "ac_m":tm["Agent Name"].value_counts() if "Agent Name" in tm.columns else pd.Series(),
-        "ac_custom":tc_custom["Agent Name"].value_counts() if "Agent Name" in tc_custom.columns else pd.Series(),
         "low":ac.idxmin() if len(ac)>1 else "N/A",
         "td":len(td),"yd":len(yd),"dp":pc(len(td),len(yd)),
         "tw":len(tw),"lw":len(lw),"wp":pc(len(tw),len(lw)),
         "tm":len(tm),"lm":len(lm),"mp":pc(len(tm),len(lm)),
-        "tc_custom":len(tc_custom),
-        "full":df,"done_df":done,"failed_df":failed,
-        "tdf":td,"wdf":tw,"mdf":tm,"custom_df":tc_custom,
-        "failed_by_agent":failed_by_agent,
-        "failed_today":len(failed_today),
-        "failed_week":len(failed_week),
-        "failed_month":len(failed_month),
-        "failed_custom":len(failed_custom),
-        "agent_success_rates":agent_success_rates
+        "full":df,"done_df":done,
+        "tdf":td,"wdf":tw,"mdf":tm
     }
-
 # ============================================================
-# ADMIN VIEWS
-# ============================================================
-def view_admin_header():
-    st.markdown(f"""
-    <div class="main-header admin-header">
-        <h1>👑 Admin Dashboard</h1>
-        <p>Full access — custom date range (10th to 10th) & failed transfer tracking</p>
-        <div class="header-badges">
-            <div class="h-badge"><div class="live-dot"></div> Admin Mode</div>
-            <div class="h-badge">📅 Custom Period: 10th → 10th</div>
-            <div class="h-badge">🔄 Auto-refresh 45s</div>
-        </div>
-    </div>""", unsafe_allow_html=True)
-
-def view_admin_kpis(k):
-    c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("✅ Completed Transfers", f"{k['done']:,}", f"{k['rate']:.1f}% rate")
-    with c2: st.metric("❌ Failed Transfers", f"{k['failed']:,}", help="Transfers marked as failed/rejected")
-    with c3: st.metric("⏳ Pending", f"{k['pend']:,}")
-    with c4: st.metric("📅 Custom Period (10th→10th)", f"{k['tc_custom']:,}", help="Transfers from 10th of month to 10th of next month")
-    with c5: st.metric("📊 Success Rate", f"{k['rate']:.1f}%", f"Failed: {k['failed']}")
-
-def view_failed_transfers(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> ❌ Failed Transfer Analysis</div>', unsafe_allow_html=True)
-    
-    c1,c2 = st.columns(2)
-    
-    with c1:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">⚠️</div><div><strong style="font-size:17px;color:white !important;">Failed Transfers by Agent</strong></div></div>', unsafe_allow_html=True)
-        
-        failed_by_agent = k.get("failed_by_agent", pd.Series())
-        if not failed_by_agent.empty:
-            failed_df = failed_by_agent.reset_index()
-            failed_df.columns = ['Agent', 'Failed Count']
-            failed_df = failed_df.sort_values('Failed Count', ascending=True)
-            
-            fig = px.bar(failed_df, y='Agent', x='Failed Count', title="Failed Transfers per Agent",
-                        orientation='h', color='Failed Count',
-                        color_continuous_scale=['rgba(255,255,255,0.05)', '#EF4444'])
-            fig.update_layout(height=400, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                            font=dict(family='Inter',color='white'), margin=dict(t=40,b=20,l=20,r=20))
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No failed transfers recorded")
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with c2:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:white !important;">Failed Transfer Trends</strong></div></div>', unsafe_allow_html=True)
-        
-        st.markdown(f"""
-        <div class="status-grid" style="grid-template-columns: repeat(2, 1fr);">
-            <div class="s-card s-failed">
-                <div class="s-ico">📅</div>
-                <div class="s-val">{k['failed_today']}</div>
-                <div class="s-lbl">Failed Today</div>
-            </div>
-            <div class="s-card s-failed">
-                <div class="s-ico">📆</div>
-                <div class="s-val">{k['failed_week']}</div>
-                <div class="s-lbl">Failed This Week</div>
-            </div>
-            <div class="s-card s-failed">
-                <div class="s-ico">🗓️</div>
-                <div class="s-val">{k['failed_month']}</div>
-                <div class="s-lbl">Failed This Month</div>
-            </div>
-            <div class="s-card s-failed">
-                <div class="s-ico">📊</div>
-                <div class="s-val">{k['failed_custom']}</div>
-                <div class="s-lbl">Failed (Custom Period)</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-def view_agent_success_rates(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> 📊 Agent Success & Failure Rates</div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    
-    agent_rates = k.get("agent_success_rates", {})
-    if agent_rates:
-        agent_data = []
-        for agent, stats in agent_rates.items():
-            agent_data.append({
-                "Agent": agent,
-                "Completed": stats["done"],
-                "Failed": stats["failed"],
-                "Pending": stats["pending"],
-                "Total": stats["total"],
-                "Success Rate %": round(stats["success_rate"], 1),
-                "Fail Rate %": round(stats["fail_rate"], 1)
-            })
-        
-        agent_df = pd.DataFrame(agent_data)
-        agent_df = agent_df.sort_values("Success Rate %", ascending=False)
-        
-        fig = px.bar(agent_df, x='Agent', y=['Success Rate %', 'Fail Rate %'], 
-                    title="Agent Performance Metrics",
-                    barmode='group',
-                    color_discrete_map={'Success Rate %': '#10B981', 'Fail Rate %': '#EF4444'})
-        fig.update_layout(height=450, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                         font=dict(family='Inter',color='white'), margin=dict(t=40,b=40,l=40,r=40),
-                         xaxis_tickangle=-45)
-        fig.update_yaxis(title="Percentage (%)", range=[0, 100])
-        st.plotly_chart(fig, use_container_width=True)
-        
-        st.markdown('<p style="margin-top:20px;font-weight:700;">Agent Performance Details</p>', unsafe_allow_html=True)
-        st.dataframe(agent_df, use_container_width=True, hide_index=True)
-        
-        low_performers = agent_df[agent_df["Success Rate %"] < 50]
-        if not low_performers.empty:
-            st.markdown(f"""
-            <div class="insight-box insight-danger">
-                <span style="font-size:22px;">⚠️</span>
-                <div>
-                    <strong>Low Performance Alert</strong><br>
-                    The following agents have success rates below 50%:
-                    {', '.join(low_performers['Agent'].tolist())}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No agent performance data available")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def view_custom_period_performance(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> 📅 Custom Period Performance (10th → 10th)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    
-    start_date, end_date = get_custom_date_range()
-    st.markdown(f"""
-    <div class="highlight-box">
-        <div class="hl-ico">📅</div>
-        <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;">Current Reporting Period</div>
-            <div style="font-size:18px;font-weight:800;margin-top:3px;">{start_date.strftime('%B %d, %Y')} → {end_date.strftime('%B %d, %Y')}</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    ac_custom = k.get("ac_custom", pd.Series())
-    if not ac_custom.empty:
-        st.markdown('<p style="font-weight:700;margin-top:20px;">🏆 Top Performers (Custom Period)</p>', unsafe_allow_html=True)
-        
-        for i, (agent, count) in enumerate(ac_custom.head(5).items(), 1):
-            medal = {1:"🥇",2:"🥈",3:"🥉"}.get(i, f"{i}.")
-            st.markdown(f"""
-            <div class="rank-row" style="animation-delay:{i*0.05}s;">
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <span style="font-size:20px;">{medal}</span>
-                    <span style="font-weight:700;font-size:16px;">{agent}</span>
-                </div>
-                <span style="font-weight:800;font-size:20px;">{int(count)}</span>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def view_admin_transfers(k):
-    st.markdown('<div class="section-title"><div class="section-dot"></div> 📋 Failed Transfer Details</div>', unsafe_allow_html=True)
-    
-    failed_df = k.get("failed_df", pd.DataFrame())
-    if not failed_df.empty:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            agents = ["All"] + sorted(failed_df["Agent Name"].dropna().unique().tolist())
-            selected_agent = st.selectbox("Filter by Agent:", agents, key="admin_agent_filter")
-        with col2:
-            date_range = st.date_input("Date Range:", 
-                                       value=(failed_df["Timestamp"].min().date(), failed_df["Timestamp"].max().date()),
-                                       key="admin_date_filter")
-        
-        filtered_failed = failed_df.copy()
-        if selected_agent != "All":
-            filtered_failed = filtered_failed[filtered_failed["Agent Name"] == selected_agent]
-        if len(date_range) == 2:
-            filtered_failed = filtered_failed[(filtered_failed["Timestamp"].dt.date >= date_range[0]) &
-                                              (filtered_failed["Timestamp"].dt.date <= date_range[1])]
-        
-        display_cols = ["Timestamp", "Agent Name", "Customer Name:", "Transfer to:", "Status", "FeedBack", "H comments"]
-        available_cols = [c for c in display_cols if c in filtered_failed.columns]
-        
-        if not filtered_failed.empty:
-            st.markdown(f'<p style="font-weight:700;">Failed Transfers: {len(filtered_failed)} records</p>', unsafe_allow_html=True)
-            st.dataframe(filtered_failed[available_cols].sort_values("Timestamp", ascending=False), 
-                        use_container_width=True, hide_index=True)
-        else:
-            st.info("No failed transfers match the filters")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="glass-card"><p>✅ No failed transfers recorded. All transfers completed successfully!</p></div>', unsafe_allow_html=True)
-
-# ============================================================
-# REGULAR VIEWS (Original)
+# VIEWS
 # ============================================================
 def view_header():
     st.markdown(f"""
@@ -1078,14 +739,12 @@ def view_header():
             <div class="h-badge">📅 {datetime.now().strftime("%b %d, %Y %H:%M")}</div>
         </div>
     </div>""", unsafe_allow_html=True)
-
 def view_kpis(k):
     c1,c2,c3,c4 = st.columns(4)
     with c1: st.metric("✅ Completed Transfers", f"{k['done']:,}", f"{k['rate']:.1f}% rate · {k['pend']} pending")
     with c2: st.metric("📅 Today", f"{k['td']:,}", f"{k['dp']:+.1f}% vs yesterday ({k['yd']})")
     with c3: st.metric("📆 This Week", f"{k['tw']:,}", f"{k['wp']:+.1f}% vs last week ({k['lw']})")
     with c4: st.metric("🗓️ This Month", f"{k['tm']:,}", f"{k['mp']:+.1f}% vs last month ({k['lm']})")
-
 def view_status(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Status Overview</div>', unsafe_allow_html=True)
     st.markdown(f"""
@@ -1115,7 +774,6 @@ def view_status(k):
             </div>
         </div>
     </div>""", unsafe_allow_html=True)
-
 def view_performers(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Performance Analysis</div>', unsafe_allow_html=True)
     c1,c2 = st.columns(2)
@@ -1178,7 +836,6 @@ def view_performers(k):
         else:
             st.info("No agent data")
         st.markdown('</div>', unsafe_allow_html=True)
-
 def view_transfers(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Transfer Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
@@ -1215,7 +872,6 @@ def view_transfers(k):
     else:
         st.info("No completed transfer data")
     st.markdown('</div>', unsafe_allow_html=True)
-
 def view_agents(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Agent Details</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
@@ -1249,7 +905,6 @@ def view_agents(k):
     else:
         st.info("No agent data")
     st.markdown('</div>',unsafe_allow_html=True)
-
 def view_trends(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> Trend Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
@@ -1297,79 +952,13 @@ def view_trends(k):
     else:
         st.info("No completed transfer data")
     st.markdown('</div>',unsafe_allow_html=True)
-
-# ============================================================
-# MODE SELECTION UI
-# ============================================================
-def mode_selector():
-    st.markdown('<div class="mode-switcher">', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([3, 1, 1])
-    
-    with col2:
-        if st.button("👤 User Mode", key="user_mode_btn", use_container_width=True):
-            st.session_state.view_mode = "user"
-            st.session_state.authenticated = True
-            st.rerun()
-    
-    with col3:
-        if st.button("👑 Admin Mode", key="admin_mode_btn", use_container_width=True):
-            st.session_state.pending_admin_auth = True
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def admin_login_modal():
-    st.markdown("""
-    <div class="login-container">
-        <h2>👑 Admin Access</h2>
-        <p style="margin: 20px 0;">Enter password to access admin features</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    password = st.text_input("Password:", type="password", key="admin_password_modal", placeholder="Enter admin password")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Cancel", use_container_width=True):
-            st.session_state.pending_admin_auth = False
-            st.rerun()
-    with col2:
-        if st.button("Login", use_container_width=True):
-            if password == "admin123":
-                st.session_state.authenticated = True
-                st.session_state.view_mode = "admin"
-                st.session_state.pending_admin_auth = False
-                st.rerun()
-            else:
-                st.error("Incorrect password")
-
 # ============================================================
 # MAIN
 # ============================================================
 def main():
-    # Initialize session state
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-    if "view_mode" not in st.session_state:
-        st.session_state.view_mode = "user"
-    if "pending_admin_auth" not in st.session_state:
-        st.session_state.pending_admin_auth = False
-    
-    # Show mode selector if not authenticated
-    if not st.session_state.authenticated and not st.session_state.pending_admin_auth:
-        mode_selector()
-        return
-    
-    # Show admin login modal if pending
-    if st.session_state.pending_admin_auth:
-        admin_login_modal()
-        return
-    
-    # Load data
+    view_header()
     with st.spinner("Connecting to Google Sheets..."):
         df = fetch_data()
-    
     if df.empty:
         st.markdown("""
         <div class="warn-card">
@@ -1381,104 +970,30 @@ def main():
                 3. Secrets configured in Streamlit Cloud
             </p>
         </div>""", unsafe_allow_html=True)
-        time.sleep(45)
-        st.rerun()
-    
+        time.sleep(45); st.rerun()
     if len(df) <= 1:
         st.warning("Sheet has only headers. Waiting for data...")
-        time.sleep(45)
-        st.rerun()
-    
-    # Calculate based on view mode
-    if st.session_state.view_mode == "admin":
-        k = calc(df, use_custom_range=True)
-        view_admin_header()
-    else:
-        k = calc(df, use_custom_range=False)
-        view_header()
-    
-    # Add mode switcher buttons at the top right
-    st.markdown("""
-    <style>
-    .mode-buttons {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-        display: flex;
-        gap: 10px;
-    }
-    .mode-btn-small {
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.05);
-        backdrop-filter: blur(10px);
-    }
-    .mode-btn-small:hover {
-        transform: translateY(-2px);
-        background: rgba(255,255,255,0.1);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Floating mode buttons
-    col1, col2, col3 = st.columns([6, 1, 1])
-    with col2:
-        if st.button("👤 User", key="switch_user", use_container_width=True):
-            st.session_state.view_mode = "user"
-            st.rerun()
-    with col3:
-        if st.button("👑 Admin", key="switch_admin", use_container_width=True):
-            password = st.text_input("Admin Password:", type="password", key="switch_password", label_visibility="collapsed")
-            if password == "admin123":
-                st.session_state.view_mode = "admin"
-                st.rerun()
-            elif password:
-                st.error("Wrong password")
-    
+        time.sleep(45); st.rerun()
+    k = calc(df)
     if not k:
         st.warning("No valid records found. Waiting...")
-        time.sleep(45)
-        st.rerun()
-    
-    # Summary banner
+        time.sleep(45); st.rerun()
     st.markdown(f"""
     <div class="success-banner">
-        ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k['done']} completed</strong> · 
-        {k['failed']} failed · {k['pend']} pending
+        ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k['done']} completed</strong> transfers counted · {k['pend']} pending
     </div>""", unsafe_allow_html=True)
-    
-    if st.session_state.view_mode == "admin":
-        view_admin_kpis(k)
-        view_failed_transfers(k)
-        view_agent_success_rates(k)
-        view_custom_period_performance(k)
-        view_admin_transfers(k)
-        view_performers(k)
-        view_transfers(k)
-        view_trends(k)
-    else:
-        view_kpis(k)
-        view_status(k)
-        view_performers(k)
-        view_transfers(k)
-        view_agents(k)
-        view_trends(k)
-    
+    view_kpis(k)
+    view_status(k)
+    view_performers(k)
+    view_transfers(k)
+    view_agents(k)
+    view_trends(k)
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    mode_text = "Admin Mode" if st.session_state.view_mode == "admin" else "User Mode"
     st.markdown(f"""
     <div class="footer-bar">
-        🟢 {mode_text} &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
+        🟢 System Online &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
     </div>""", unsafe_allow_html=True)
-    
     time.sleep(45)
     st.rerun()
-
 if __name__ == "__main__":
     main()
