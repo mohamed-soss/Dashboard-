@@ -695,22 +695,34 @@ def fetch_data():
 # HELPER FUNCTIONS
 # ============================================================
 def get_custom_date_range():
-    """Get date range from the 11th of current/previous month to the 10th of next month,
-    inclusive of the entire 10th day (i.e. period ends right after the 10th finishes)."""
+    """Get date range from the 11th of current/previous month at 02:00 to the 10th
+    of next month (extending 2 hours past midnight into the 11th), i.e. the period
+    runs [11th 02:00 -> next 11th 02:00)."""
     today = datetime.now()
-    if today.day >= 11:
-        start_date = datetime(today.year, today.month, 11)
+    cutoff = today.replace(hour=2, minute=0, second=0, microsecond=0)
+    if today.day > 11 or (today.day == 11 and today >= cutoff):
+        start_date = datetime(today.year, today.month, 11, 2, 0, 0)
         if today.month == 12:
-            end_date = datetime(today.year + 1, 1, 11)
+            end_date = datetime(today.year + 1, 1, 11, 2, 0, 0)
         else:
-            end_date = datetime(today.year, today.month + 1, 11)
+            end_date = datetime(today.year, today.month + 1, 11, 2, 0, 0)
     else:
         if today.month == 1:
-            start_date = datetime(today.year - 1, 12, 11)
+            start_date = datetime(today.year - 1, 12, 11, 2, 0, 0)
         else:
-            start_date = datetime(today.year, today.month - 1, 11)
-        end_date = datetime(today.year, today.month, 11)
+            start_date = datetime(today.year, today.month - 1, 11, 2, 0, 0)
+        end_date = datetime(today.year, today.month, 11, 2, 0, 0)
     return start_date, end_date
+
+def get_previous_period_range():
+    """Returns the (start, end) of the period immediately before the current custom period."""
+    cur_start, _ = get_custom_date_range()
+    if cur_start.month == 1:
+        prev_start = datetime(cur_start.year - 1, 12, cur_start.day, cur_start.hour, cur_start.minute, cur_start.second)
+    else:
+        prev_start = datetime(cur_start.year, cur_start.month - 1, cur_start.day, cur_start.hour, cur_start.minute, cur_start.second)
+    prev_end = cur_start
+    return prev_start, prev_end
 
 def ranges():
     n = datetime.now()
@@ -725,6 +737,7 @@ def ranges():
     lme = ms
     
     custom_start, custom_end = get_custom_date_range()
+    prev_start, prev_end = get_previous_period_range()
     
     return {
         "today":(ts, ts+timedelta(days=1)),
@@ -733,7 +746,8 @@ def ranges():
         "lweek":(lws, lws+timedelta(days=7)),
         "month":(ms, datetime(n.year+1,1,1) if n.month==12 else datetime(n.year,n.month+1,1)),
         "lmonth":(lms, lme),
-        "custom":(custom_start, custom_end)
+        "custom":(custom_start, custom_end),
+        "prev_custom":(prev_start, prev_end)
     }
 
 def calc(df, use_custom_range=False):
@@ -752,6 +766,8 @@ def calc(df, use_custom_range=False):
     def f(d,k):
         if k == "custom" and use_custom_range:
             s,e = r["custom"]
+        elif k == "prev_custom":
+            s,e = r["prev_custom"]
         else:
             s,e = r[k]
         return d[(d["Timestamp"]>=s)&(d["Timestamp"]<e)]
@@ -763,6 +779,7 @@ def calc(df, use_custom_range=False):
     tm=f(done,"month")
     lm=f(done,"lmonth")
     tc_custom = f(done, "custom") if use_custom_range else pd.DataFrame()
+    tc_prev = f(done, "prev_custom") if use_custom_range else pd.DataFrame()
     
     failed_by_agent = failed["Agent Name"].value_counts() if "Agent Name" in failed.columns else pd.Series()
     failed_today = f(failed, "today")
@@ -800,6 +817,8 @@ def calc(df, use_custom_range=False):
         "ac_w":tw["Agent Name"].value_counts() if "Agent Name" in tw.columns else pd.Series(),
         "ac_m":tm["Agent Name"].value_counts() if "Agent Name" in tm.columns else pd.Series(),
         "ac_custom":tc_custom["Agent Name"].value_counts() if "Agent Name" in tc_custom.columns else pd.Series(),
+        "ac_prev":tc_prev["Agent Name"].value_counts() if "Agent Name" in tc_prev.columns else pd.Series(),
+        "tc_prev":len(tc_prev),
         "low":ac.idxmin() if len(ac)>1 else "N/A",
         "td":len(td),"yd":len(yd),"dp":pc(len(td),len(yd)),
         "tw":len(tw),"lw":len(lw),"wp":pc(len(tw),len(lw)),
@@ -962,22 +981,29 @@ def view_custom_period_performance(k):
     
     try:
         start_date, end_date = get_custom_date_range()
-        display_end = end_date - timedelta(days=1)
+        prev_start, prev_end = get_previous_period_range()
+        display_end = end_date - timedelta(seconds=1)
+        prev_display_end = prev_end - timedelta(seconds=1)
         st.markdown(f"""
         <div class="highlight-box">
             <div class="hl-ico">📅</div>
             <div>
                 <div style="font-size:11px;font-weight:700;text-transform:uppercase;">Current Reporting Period</div>
-                <div style="font-size:18px;font-weight:800;margin-top:3px;">{start_date.strftime('%B %d, %Y')} → {display_end.strftime('%B %d, %Y')} (inclusive)</div>
+                <div style="font-size:18px;font-weight:800;margin-top:3px;">{start_date.strftime('%b %d, %Y %H:%M')} → {display_end.strftime('%b %d, %Y %H:%M')}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         st.markdown(f"""
-        <div class="status-grid" style="grid-template-columns: 1fr;">
+        <div class="status-grid" style="grid-template-columns: 1fr 1fr;">
             <div class="s-card s-rate">
                 <div class="s-ico">📦</div>
                 <div class="s-val">{k.get('tc_custom', 0)}</div>
-                <div class="s-lbl">Total Completed Transfers (Custom Period)</div>
+                <div class="s-lbl">Total Completed (Current Period)</div>
+            </div>
+            <div class="s-card s-pending">
+                <div class="s-ico">🕓</div>
+                <div class="s-val">{k.get('tc_prev', 0)}</div>
+                <div class="s-lbl">Total Completed (Previous Period: {prev_start.strftime('%b %d')} → {prev_display_end.strftime('%b %d')})</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
