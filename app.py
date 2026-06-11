@@ -695,20 +695,21 @@ def fetch_data():
 # HELPER FUNCTIONS
 # ============================================================
 def get_custom_date_range():
-    """Get date range from 10th of current/previous month to 10th of next month"""
+    """Get date range from 10th of current/previous month to the 10th of next month,
+    inclusive of the entire 10th day (i.e. period ends right after the 10th finishes)."""
     today = datetime.now()
     if today.day >= 10:
         start_date = datetime(today.year, today.month, 10)
         if today.month == 12:
-            end_date = datetime(today.year + 1, 1, 10)
+            end_date = datetime(today.year + 1, 1, 11)
         else:
-            end_date = datetime(today.year, today.month + 1, 10)
+            end_date = datetime(today.year, today.month + 1, 11)
     else:
         if today.month == 1:
             start_date = datetime(today.year - 1, 12, 10)
         else:
             start_date = datetime(today.year, today.month - 1, 10)
-        end_date = datetime(today.year, today.month, 10)
+        end_date = datetime(today.year, today.month, 11)
     return start_date, end_date
 
 def ranges():
@@ -961,12 +962,22 @@ def view_custom_period_performance(k):
     
     try:
         start_date, end_date = get_custom_date_range()
+        display_end = end_date - timedelta(days=1)
         st.markdown(f"""
         <div class="highlight-box">
             <div class="hl-ico">📅</div>
             <div>
                 <div style="font-size:11px;font-weight:700;text-transform:uppercase;">Current Reporting Period</div>
-                <div style="font-size:18px;font-weight:800;margin-top:3px;">{start_date.strftime('%B %d, %Y')} → {end_date.strftime('%B %d, %Y')}</div>
+                <div style="font-size:18px;font-weight:800;margin-top:3px;">{start_date.strftime('%B %d, %Y')} → {display_end.strftime('%B %d, %Y')} (inclusive)</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="status-grid" style="grid-template-columns: 1fr;">
+            <div class="s-card s-rate">
+                <div class="s-ico">📦</div>
+                <div class="s-val">{k.get('tc_custom', 0)}</div>
+                <div class="s-lbl">Total Completed Transfers (Custom Period)</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
