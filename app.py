@@ -695,20 +695,20 @@ def fetch_data():
 # HELPER FUNCTIONS
 # ============================================================
 def get_custom_date_range():
-    """Get date range from 10th of current/previous month to the 10th of next month,
+    """Get date range from the 11th of current/previous month to the 10th of next month,
     inclusive of the entire 10th day (i.e. period ends right after the 10th finishes)."""
     today = datetime.now()
-    if today.day >= 10:
-        start_date = datetime(today.year, today.month, 10)
+    if today.day >= 11:
+        start_date = datetime(today.year, today.month, 11)
         if today.month == 12:
             end_date = datetime(today.year + 1, 1, 11)
         else:
             end_date = datetime(today.year, today.month + 1, 11)
     else:
         if today.month == 1:
-            start_date = datetime(today.year - 1, 12, 10)
+            start_date = datetime(today.year - 1, 12, 11)
         else:
-            start_date = datetime(today.year, today.month - 1, 10)
+            start_date = datetime(today.year, today.month - 1, 11)
         end_date = datetime(today.year, today.month, 11)
     return start_date, end_date
 
