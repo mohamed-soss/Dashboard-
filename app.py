@@ -19,42 +19,55 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-:root {
-    --primary: #4F46E5;
-    --primary-light: #818CF8;
-    --primary-dark: #312E81;
-    --accent: #06B6D4;
-    --accent2: #8B5CF6;
-    --bg: #0A0E27;
-    --surface: rgba(255,255,255,0.04);
-    --surface2: rgba(255,255,255,0.06);
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.12);
-    --text: #FFFFFF;
-    --text-muted: rgba(255,255,255,0.85);
-    --text-bright: #FFFFFF;
-    --success: #10B981;
-    --warning: #F59E0B;
-    --danger: #EF4444;
-    --glow: rgba(79,70,229,0.4);
-}
 * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #FFFFFF !important; }
-.stApp {
-    background: var(--bg) !important;
+
+/* FIX: Allow scrolling */
+html, body, .stApp {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: #0A0E27 !important;
 }
-/* Neural canvas behind everything */
+
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 4rem !important;
+    position: relative !important;
+    z-index: 10 !important;
+    min-height: 100vh !important;
+}
+
+/* Neural canvas - fixed behind everything */
 #neural-canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    z-index: 0;
-    pointer-events: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
 }
+
 /* Make sure Streamlit content is above canvas */
-.stApp > div, .stApp > header, .main, .block-container {
-    position: relative;
-    z-index: 1;
+.stApp > div, .stApp > header, .main {
+    position: relative !important;
+    z-index: 1 !important;
 }
+
+/* FIX: Ensure content doesn't get cut off */
+.main > div {
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+/* Force scroll on main content */
+.stAppViewContainer {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: visible !important;
+}
+
 /* ==================== ANIMATIONS ==================== */
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(30px); }
@@ -105,6 +118,7 @@ st.markdown("""
 @keyframes barGrow {
     from { width: 0%; }
 }
+
 /* ==================== HEADER ==================== */
 .main-header {
     background: linear-gradient(135deg, #1E1B4B 0%, #312E81 30%, #4338CA 60%, #0891B2 100%);
@@ -173,14 +187,7 @@ st.markdown("""
     animation: pulse 2s ease infinite;
     box-shadow: 0 0 10px rgba(52,211,153,0.6);
 }
-/* Mode Switcher Buttons */
-.mode-switcher {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    justify-content: flex-end;
-    animation: fadeDown 0.5s ease forwards;
-}
+
 /* ==================== METRIC CARDS ==================== */
 div[data-testid="stMetric"] {
     background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
@@ -233,6 +240,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     font-size: 12px !important;
     font-weight: 500 !important;
 }
+
 /* ==================== SECTION HEADERS ==================== */
 .section-title {
     color: white;
@@ -252,6 +260,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     box-shadow: 0 0 12px var(--glow);
     animation: pulse 3s ease infinite;
 }
+
 /* ==================== GLASS CARDS ==================== */
 .glass-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
@@ -264,6 +273,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
     position: relative;
     overflow: hidden;
+    margin-bottom: 16px;
 }
 .glass-card::before {
     content: '';
@@ -283,7 +293,6 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 .glass-card p, .glass-card span {
     color: rgba(255,255,255,0.85) !important;
 }
-/* Card icon */
 .card-ico {
     width: 44px; height: 44px;
     background: linear-gradient(135deg, var(--primary), var(--accent));
@@ -298,6 +307,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     transform: rotate(-5deg) scale(1.1);
     box-shadow: 0 12px 28px rgba(79,70,229,0.4);
 }
+
 /* ==================== STATUS GRID ==================== */
 .status-grid {
     display: grid;
@@ -359,6 +369,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
 .s-pending .s-lbl { color: white !important; }
 .s-failed .s-lbl { color: white !important; }
 .s-rate .s-lbl { color: white !important; }
+
 /* ==================== TOP PERFORMER ==================== */
 .top-hero {
     background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
@@ -373,6 +384,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     transform: translateY(-3px);
     box-shadow: 0 12px 32px rgba(245,158,11,0.12);
 }
+
 /* ==================== RANKING ==================== */
 .rank-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -409,6 +421,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: linear-gradient(90deg, var(--primary), var(--accent));
     animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) forwards;
 }
+
 /* ==================== HIGHLIGHT BOX ==================== */
 .highlight-box {
     margin-top: 18px;
@@ -434,6 +447,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     box-shadow: 0 8px 20px rgba(79,70,229,0.3);
     flex-shrink: 0;
 }
+
 /* ==================== INSIGHT BOX ==================== */
 .insight-box {
     margin-top: 14px;
@@ -456,6 +470,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: rgba(245,158,11,0.06);
     border: 1px solid rgba(245,158,11,0.12);
 }
+
 /* ==================== TABS ==================== */
 .stTabs [data-baseweb="tab-list"] {
     gap: 4px;
@@ -484,6 +499,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     color: white !important;
     background: rgba(255,255,255,0.04);
 }
+
 /* ==================== DATAFRAME ==================== */
 .stDataFrame {
     border-radius: 14px !important;
@@ -497,6 +513,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     font-weight: 700 !important;
 }
 .stDataFrame td { color: white !important; }
+
 /* ==================== SELECTBOX ==================== */
 .stSelectbox label { color: white !important; }
 .stSelectbox > div > div {
@@ -505,6 +522,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: rgba(255,255,255,0.04) !important;
     color: white !important;
 }
+
 /* ==================== SUCCESS BANNER ==================== */
 .success-banner {
     background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
@@ -517,6 +535,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     color: white !important;
     font-size: 14px; font-weight: 500;
 }
+
 /* ==================== WARNING ==================== */
 .warn-card {
     background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
@@ -527,6 +546,7 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     animation: fadeUp 0.5s ease forwards;
     color: white !important;
 }
+
 /* ==================== FOOTER ==================== */
 .footer-bar {
     margin-top: 36px;
@@ -540,19 +560,22 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     font-size: 13px;
     animation: fadeUp 0.5s ease 0.8s both;
 }
+
 /* ==================== MISC ==================== */
 #MainMenu, footer, header { visibility: hidden !important; }
-.block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
 /* Plotly dark fix */
 .js-plotly-plot .plotly .bg { fill: transparent !important; }
+
 /* ==================== GLOBAL WHITE TEXT OVERRIDE ==================== */
 p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, small {
     color: white !important;
 }
+
 /* Admin Panel Styles */
 .admin-header {
     background: linear-gradient(135deg, #1E1B4B 0%, #312E81 30%, #7C3AED 60%, #D946EF 100%);
@@ -568,6 +591,37 @@ p, span, label, div, td, th, li, a, h1, h2, h3, h4, h5, h6, strong, em, b, i, sm
     border: 1px solid var(--border2);
     border-radius: 24px;
     text-align: center;
+}
+
+/* Mode buttons */
+.mode-buttons {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+}
+
+/* CSS Variables */
+:root {
+    --primary: #4F46E5;
+    --primary-light: #818CF8;
+    --primary-dark: #312E81;
+    --accent: #06B6D4;
+    --accent2: #8B5CF6;
+    --bg: #0A0E27;
+    --surface: rgba(255,255,255,0.04);
+    --surface2: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.12);
+    --text: #FFFFFF;
+    --text-muted: rgba(255,255,255,0.85);
+    --text-bright: #FFFFFF;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --glow: rgba(79,70,229,0.4);
 }
 </style>
 <!-- NEURAL NETWORK CANVAS -->
