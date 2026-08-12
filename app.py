@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
+import time
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -484,11 +485,9 @@ div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
     background: rgba(255,255,255,0.04);
 }
 /* ==================== DATAFRAME ==================== */
-/* NOTE: no "overflow: hidden" here — that was clipping the table's own
-   internal scrollbar and made long tables (e.g. failed-transfer details)
-   impossible to scroll through. */
 .stDataFrame {
     border-radius: 14px !important;
+    overflow: hidden !important;
     border: 1px solid var(--border) !important;
 }
 .stDataFrame table { color: white !important; }
@@ -684,7 +683,7 @@ def fetch_data():
             df["IsFailed"] = df["Status"].isin(["failed", "reject", "rejected", "fail", "not done"])
         else:
             df["IsFailed"] = False
-
+            
         for c in ["Timestamp","Agent Name","Transfer to:","Customer Name:","Electric Bill:","Credit Score:","Status","FeedBack","H comments"]:
             if c not in df.columns: df[c] = None
         return df
@@ -736,10 +735,10 @@ def ranges():
     ms = datetime(n.year,n.month,1)
     lms = datetime(n.year-1,12,1) if n.month==1 else datetime(n.year,n.month-1,1)
     lme = ms
-
+    
     custom_start, custom_end = get_custom_date_range()
     prev_start, prev_end = get_previous_period_range()
-
+    
     return {
         "today":(ts, ts+timedelta(days=1)),
         "yest":(ys, ys+timedelta(days=1)),
@@ -761,9 +760,9 @@ def calc(df, use_custom_range=False):
     dn = len(done)
     pend = total - dn - len(failed)
     failed_count = len(failed)
-
+    
     r = ranges()
-
+    
     def f(d,k):
         if k == "custom" and use_custom_range:
             s,e = r["custom"]
@@ -772,7 +771,7 @@ def calc(df, use_custom_range=False):
         else:
             s,e = r[k]
         return d[(d["Timestamp"]>=s)&(d["Timestamp"]<e)]
-
+    
     td=f(done,"today")
     yd=f(done,"yest")
     tw=f(done,"week")
@@ -781,18 +780,18 @@ def calc(df, use_custom_range=False):
     lm=f(done,"lmonth")
     tc_custom = f(done, "custom") if use_custom_range else pd.DataFrame()
     tc_prev = f(done, "prev_custom") if use_custom_range else pd.DataFrame()
-
+    
     failed_by_agent = failed["Agent Name"].value_counts() if "Agent Name" in failed.columns else pd.Series()
     failed_today = f(failed, "today")
     failed_week = f(failed, "week")
     failed_month = f(failed, "month")
     failed_custom = f(failed, "custom") if use_custom_range else pd.DataFrame()
-
+    
     def pc(a,b): return ((a-b)/b*100) if b>0 else 0
-
+    
     tc = done["Transfer to:"].value_counts() if "Transfer to:" in done.columns else pd.Series()
     ac = done["Agent Name"].value_counts() if "Agent Name" in done.columns else pd.Series()
-
+    
     agent_success_rates = {}
     if "Agent Name" in df.columns:
         for agent in df["Agent Name"].dropna().unique():
@@ -807,7 +806,7 @@ def calc(df, use_custom_range=False):
                 "success_rate": (agent_done / agent_total * 100) if agent_total > 0 else 0,
                 "fail_rate": (agent_failed / agent_total * 100) if agent_total > 0 else 0
             }
-
+    
     return {
         "total":total,"done":dn,"pend":pend,"failed":failed_count,
         "rate":(dn/total*100) if total>0 else 0,
@@ -863,20 +862,20 @@ def view_admin_kpis(k):
 
 def view_failed_transfers(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> ❌ Failed Transfer Analysis</div>', unsafe_allow_html=True)
-
+    
     c1,c2 = st.columns(2)
-
+    
     with c1:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">⚠️</div><div><strong style="font-size:17px;color:white !important;">Failed Transfers by Agent</strong></div></div>', unsafe_allow_html=True)
-
+        
         failed_by_agent = k.get("failed_by_agent", pd.Series())
         if not failed_by_agent.empty and len(failed_by_agent) > 0:
             try:
                 failed_df = failed_by_agent.reset_index()
                 failed_df.columns = ['Agent', 'Failed Count']
                 failed_df = failed_df.sort_values('Failed Count', ascending=True)
-
+                
                 fig = px.bar(failed_df, y='Agent', x='Failed Count', title="Failed Transfers per Agent",
                             orientation='h', color='Failed Count',
                             color_continuous_scale=['rgba(255,255,255,0.05)', '#EF4444'])
@@ -888,11 +887,11 @@ def view_failed_transfers(k):
         else:
             st.info("No failed transfers recorded")
         st.markdown('</div>', unsafe_allow_html=True)
-
+    
     with c2:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="card-ico">📈</div><div><strong style="font-size:17px;color:white !important;">Failed Transfer Trends</strong></div></div>', unsafe_allow_html=True)
-
+        
         st.markdown(f"""
         <div class="status-grid" style="grid-template-columns: repeat(2, 1fr);">
             <div class="s-card s-failed">
@@ -922,7 +921,7 @@ def view_failed_transfers(k):
 def view_agent_success_rates(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> 📊 Agent Success & Failure Rates</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-
+    
     agent_rates = k.get("agent_success_rates", {})
     if agent_rates and len(agent_rates) > 0:
         agent_data = []
@@ -936,13 +935,13 @@ def view_agent_success_rates(k):
                 "Success Rate %": round(stats.get("success_rate", 0), 1),
                 "Fail Rate %": round(stats.get("fail_rate", 0), 1)
             })
-
+        
         agent_df = pd.DataFrame(agent_data)
         if not agent_df.empty:
             agent_df = agent_df.sort_values("Success Rate %", ascending=False)
-
+            
             try:
-                fig = px.bar(agent_df, x='Agent', y=['Success Rate %', 'Fail Rate %'],
+                fig = px.bar(agent_df, x='Agent', y=['Success Rate %', 'Fail Rate %'], 
                             title="Agent Performance Metrics",
                             barmode='group',
                             color_discrete_map={'Success Rate %': '#10B981', 'Fail Rate %': '#EF4444'})
@@ -953,10 +952,10 @@ def view_agent_success_rates(k):
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.info("Could not create performance chart")
-
+            
             st.markdown('<p style="margin-top:20px;font-weight:700;">Agent Performance Details</p>', unsafe_allow_html=True)
             st.dataframe(agent_df, use_container_width=True, hide_index=True)
-
+            
             low_performers = agent_df[agent_df["Success Rate %"] < 50]
             if not low_performers.empty:
                 low_agents = ', '.join(low_performers['Agent'].tolist())
@@ -973,13 +972,13 @@ def view_agent_success_rates(k):
             st.info("No agent performance data available")
     else:
         st.info("No agent performance data available")
-
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 def view_custom_period_performance(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> 📅 Custom Period Performance (10th → 10th)</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-
+    
     try:
         start_date, end_date = get_custom_date_range()
         prev_start, prev_end = get_previous_period_range()
@@ -1010,11 +1009,11 @@ def view_custom_period_performance(k):
         """, unsafe_allow_html=True)
     except Exception as e:
         st.warning("Could not calculate custom date range")
-
+    
     ac_custom = k.get("ac_custom", pd.Series())
     if not ac_custom.empty and len(ac_custom) > 0:
         st.markdown('<p style="font-weight:700;margin-top:20px;">🏆 Top Performers (Custom Period)</p>', unsafe_allow_html=True)
-
+        
         for i, (agent, count) in enumerate(ac_custom.head(5).items(), 1):
             medal = {1:"🥇",2:"🥈",3:"🥉"}.get(i, f"{i}.")
             st.markdown(f"""
@@ -1028,16 +1027,16 @@ def view_custom_period_performance(k):
             """, unsafe_allow_html=True)
     else:
         st.info("No data available for custom period")
-
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 def view_admin_transfers(k):
     st.markdown('<div class="section-title"><div class="section-dot"></div> 📋 Failed Transfer Details</div>', unsafe_allow_html=True)
-
+    
     failed_df = k.get("failed_df", pd.DataFrame())
     if not failed_df.empty and len(failed_df) > 0:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-
+        
         try:
             col1, col2 = st.columns(2)
             with col1:
@@ -1046,29 +1045,29 @@ def view_admin_transfers(k):
             with col2:
                 min_date = failed_df["Timestamp"].min().date() if not failed_df.empty else datetime.now().date()
                 max_date = failed_df["Timestamp"].max().date() if not failed_df.empty else datetime.now().date()
-                date_range = st.date_input("Date Range:",
+                date_range = st.date_input("Date Range:", 
                                            value=(min_date, max_date),
                                            key="admin_date_filter")
-
+            
             filtered_failed = failed_df.copy()
             if selected_agent != "All":
                 filtered_failed = filtered_failed[filtered_failed["Agent Name"] == selected_agent]
             if len(date_range) == 2:
                 filtered_failed = filtered_failed[(filtered_failed["Timestamp"].dt.date >= date_range[0]) &
                                                   (filtered_failed["Timestamp"].dt.date <= date_range[1])]
-
+            
             display_cols = ["Timestamp", "Agent Name", "Customer Name:", "Transfer to:", "Status", "FeedBack", "H comments"]
             available_cols = [c for c in display_cols if c in filtered_failed.columns]
-
+            
             if not filtered_failed.empty:
                 st.markdown(f'<p style="font-weight:700;">Failed Transfers: {len(filtered_failed)} records</p>', unsafe_allow_html=True)
-                st.dataframe(filtered_failed[available_cols].sort_values("Timestamp", ascending=False),
+                st.dataframe(filtered_failed[available_cols].sort_values("Timestamp", ascending=False), 
                             use_container_width=True, hide_index=True)
             else:
                 st.info("No failed transfers match the filters")
         except Exception as e:
             st.warning(f"Error displaying failed transfers")
-
+        
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="glass-card"><p>✅ No failed transfers recorded. All transfers completed successfully!</p></div>', unsafe_allow_html=True)
@@ -1318,7 +1317,7 @@ def mode_selector():
             <p style="margin-bottom: 40px; font-size: 18px;">Select your access mode</p>
             <div style="display: flex; gap: 20px; justify-content: center;">
     """, unsafe_allow_html=True)
-
+    
     col1, col2 = st.columns(2)
     with col1:
         if st.button("👤 User Mode", use_container_width=True, key="user_main_btn"):
@@ -1329,7 +1328,7 @@ def mode_selector():
         if st.button("👑 Admin Mode", use_container_width=True, key="admin_main_btn"):
             st.session_state.pending_admin_auth = True
             st.rerun()
-
+    
     st.markdown("""
             </div>
         </div>
@@ -1343,9 +1342,9 @@ def admin_login_modal():
         <p style="margin: 20px 0;">Enter password to access admin features</p>
     </div>
     """, unsafe_allow_html=True)
-
+    
     password = st.text_input("Password:", type="password", key="admin_password_modal", placeholder="Enter admin password")
-
+    
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Cancel", use_container_width=True):
@@ -1362,23 +1361,31 @@ def admin_login_modal():
                 st.error("Incorrect password")
 
 # ============================================================
-# LIVE DASHBOARD FRAGMENT
+# MAIN
 # ============================================================
-# Everything that needs to refresh on a timer lives inside this fragment.
-# st.fragment(run_every=...) reruns ONLY this function on its own schedule —
-# it does not rerun (and does not scroll-reset) the rest of the page the way
-# a full st.rerun() + time.sleep() loop does.
-@st.fragment(run_every=45)
-def render_live_dashboard():
-    mode = st.session_state.view_mode
-
-    if mode == "admin":
-        view_admin_header()
-    else:
-        view_header()
-
-    df = fetch_data()
-
+def main():
+    # Initialize session state
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if "view_mode" not in st.session_state:
+        st.session_state.view_mode = "user"
+    if "pending_admin_auth" not in st.session_state:
+        st.session_state.pending_admin_auth = False
+    
+    # Show mode selector if not authenticated
+    if not st.session_state.authenticated and not st.session_state.pending_admin_auth:
+        mode_selector()
+        return
+    
+    # Show admin login modal if pending
+    if st.session_state.pending_admin_auth:
+        admin_login_modal()
+        return
+    
+    # Load data
+    with st.spinner("Connecting to Google Sheets..."):
+        df = fetch_data()
+    
     if df.empty:
         st.markdown("""
         <div class="warn-card">
@@ -1390,25 +1397,64 @@ def render_live_dashboard():
                 3. Secrets configured in Streamlit Cloud
             </p>
         </div>""", unsafe_allow_html=True)
-        return
-
+        time.sleep(45)
+        st.rerun()
+    
     if len(df) <= 1:
         st.warning("Sheet has only headers. Waiting for data...")
-        return
-
-    k = calc(df, use_custom_range=(mode == "admin"))
-
+        time.sleep(45)
+        st.rerun()
+    
+    # Calculate based on view mode
+    if st.session_state.view_mode == "admin":
+        k = calc(df, use_custom_range=True)
+        view_admin_header()
+    else:
+        k = calc(df, use_custom_range=False)
+        view_header()
+    
+    # Add mode switcher buttons at the top right
+    st.markdown("""
+    <style>
+    .mode-buttons {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Mode switching buttons
+    col1, col2, col3 = st.columns([6, 1, 1])
+    with col2:
+        if st.button("👤 User", key="switch_user", use_container_width=True):
+            st.session_state.view_mode = "user"
+            st.rerun()
+    with col3:
+        if st.button("👑 Admin", key="switch_admin", use_container_width=True):
+            password = st.text_input("Admin Password:", type="password", key="switch_password", label_visibility="collapsed", placeholder="Enter password")
+            if password == "admin123":
+                st.session_state.view_mode = "admin"
+                st.rerun()
+            elif password:
+                st.error("Wrong password")
+    
     if not k:
         st.warning("No valid records found. Waiting...")
-        return
-
+        time.sleep(45)
+        st.rerun()
+    
+    # Summary banner
     st.markdown(f"""
     <div class="success-banner">
-        ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k.get('done', 0)} completed</strong> ·
+        ✅ Loaded <strong>{len(df)}</strong> records — <strong>{k.get('done', 0)} completed</strong> · 
         {k.get('failed', 0)} failed · {k.get('pend', 0)} pending
     </div>""", unsafe_allow_html=True)
-
-    if mode == "admin":
+    
+    if st.session_state.view_mode == "admin":
         view_admin_kpis(k)
         view_failed_transfers(k)
         view_agent_success_rates(k)
@@ -1424,54 +1470,16 @@ def render_live_dashboard():
         view_transfers(k)
         view_agents(k)
         view_trends(k)
-
+    
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    mode_text = "Admin Mode" if mode == "admin" else "User Mode"
+    mode_text = "Admin Mode" if st.session_state.view_mode == "admin" else "User Mode"
     st.markdown(f"""
     <div class="footer-bar">
         🟢 {mode_text} &nbsp;&nbsp;·&nbsp;&nbsp; Last updated: {now} &nbsp;&nbsp;·&nbsp;&nbsp; Next refresh in 45s
     </div>""", unsafe_allow_html=True)
-
-# ============================================================
-# MAIN
-# ============================================================
-def main():
-    # Initialize session state
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-    if "view_mode" not in st.session_state:
-        st.session_state.view_mode = "user"
-    if "pending_admin_auth" not in st.session_state:
-        st.session_state.pending_admin_auth = False
-
-    # Show mode selector if not authenticated
-    if not st.session_state.authenticated and not st.session_state.pending_admin_auth:
-        mode_selector()
-        return
-
-    # Show admin login modal if pending
-    if st.session_state.pending_admin_auth:
-        admin_login_modal()
-        return
-
-    # Mode switching buttons — these are user-triggered, not on a timer,
-    # so a full rerun here is fine and expected.
-    col1, col2, col3 = st.columns([6, 1, 1])
-    with col2:
-        if st.button("👤 User", key="switch_user", use_container_width=True):
-            st.session_state.view_mode = "user"
-            st.rerun()
-    with col3:
-        if st.button("👑 Admin", key="switch_admin", use_container_width=True):
-            password = st.text_input("Admin Password:", type="password", key="switch_password", label_visibility="collapsed", placeholder="Enter password")
-            if password == "admin123":
-                st.session_state.view_mode = "admin"
-                st.rerun()
-            elif password:
-                st.error("Wrong password")
-
-    # Everything below auto-refreshes every 45s WITHOUT resetting scroll position
-    render_live_dashboard()
+    
+    time.sleep(45)
+    st.rerun()
 
 if __name__ == "__main__":
     main()
